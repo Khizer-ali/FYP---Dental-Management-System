@@ -1,0 +1,140 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import '../index.css';
+
+const API_BASE = 'http://localhost:5000/api';
+
+function DatabasePage() {
+    const [patients, setPatients] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [message, setMessage] = useState({ text: '', type: '' });
+    const navigate = useNavigate();
+
+    useEffect(() => { loadPatients(); }, []);
+
+    const loadPatients = async () => {
+        try {
+            const response = await fetch(`${API_BASE}/patients`);
+            const data = await response.json();
+            setPatients(data);
+            setLoading(false);
+        } catch (error) {
+            console.error('Error loading patients:', error);
+            setLoading(false);
+            showMessage('Failed to load patient database.', 'error');
+        }
+    };
+
+    const showMessage = (text, type) => {
+        setMessage({ text, type });
+        setTimeout(() => setMessage({ text: '', type: '' }), 5000);
+    };
+
+    const viewPatient = (patientId) => navigate(`/patient/${patientId}`);
+
+    const deletePatient = async (patientId, patientName, e) => {
+        e.stopPropagation();
+        const confirmDelete = window.confirm(`Delete ${patientName} and all associated records? This cannot be undone.`);
+        if (!confirmDelete) return;
+        try {
+            const response = await fetch(`${API_BASE}/patients/${patientId}`, { method: 'DELETE' });
+            if (response.ok) {
+                showMessage(`Patient ${patientName} deleted.`, 'success');
+                loadPatients();
+            } else {
+                const err = await response.json();
+                showMessage(`Failed to delete: ${err.error}`, 'error');
+            }
+        } catch (err) {
+            showMessage('Network error during deletion.', 'error');
+        }
+    };
+
+    return (
+        <div style={{ minHeight: '100vh', background: '#0f172a', padding: '24px' }}>
+            <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+                {/* Header */}
+                <div style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    marginBottom: '24px', padding: '20px 24px',
+                    background: '#1e293b', borderRadius: '12px',
+                    border: '1px solid rgba(255,255,255,0.08)'
+                }}>
+                    <div>
+                        <h1 style={{ margin: 0, color: 'white', fontSize: '1.6em' }}>🗄️ Patient Database</h1>
+                        <p style={{ margin: '5px 0 0', color: '#94a3b8', fontSize: '14px' }}>Manage and view all registered patients</p>
+                    </div>
+                    <button
+                        onClick={() => navigate('/')}
+                        style={{
+                            background: 'rgba(59,130,246,0.15)', color: 'white',
+                            border: '1px solid rgba(59,130,246,0.4)', borderRadius: '8px',
+                            padding: '10px 18px', cursor: 'pointer', fontWeight: '600', fontSize: '14px'
+                        }}
+                    >
+                        ← Back to Dashboard
+                    </button>
+                </div>
+
+                {message.text && (
+                    <div className={`message ${message.type}`} style={{ marginBottom: '16px' }}>
+                        {message.text}
+                    </div>
+                )}
+
+                {/* Patient Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+                    {loading ? (
+                        <p style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px', color: '#94a3b8' }}>
+                            Loading patients…
+                        </p>
+                    ) : patients.length === 0 ? (
+                        <p style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px', color: '#94a3b8' }}>
+                            No patients found. Create a new patient on the dashboard.
+                        </p>
+                    ) : patients.map(patient => (
+                        <div
+                            key={patient.id}
+                            onClick={() => viewPatient(patient.id)}
+                            style={{
+                                background: 'rgba(30,41,59,0.85)',
+                                border: '1px solid rgba(255,255,255,0.08)',
+                                borderRadius: '10px', padding: '20px',
+                                cursor: 'pointer', position: 'relative',
+                                transition: 'border-color 0.2s, transform 0.2s, box-shadow 0.2s'
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(59,130,246,0.2)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+                        >
+                            <h3 style={{ color: '#3b82f6', marginBottom: '8px' }}>{patient.name}</h3>
+                            <p style={{ color: '#94a3b8', fontSize: '14px', margin: '4px 0' }}>
+                                <strong style={{ color: '#cbd5e1' }}>Ref:</strong> {patient.reference_number}
+                            </p>
+                            <p style={{ color: '#94a3b8', fontSize: '14px', margin: '4px 0' }}>
+                                <strong style={{ color: '#cbd5e1' }}>Created:</strong> {new Date(patient.created_at).toLocaleDateString()}
+                            </p>
+                            {patient.phone_number && (
+                                <p style={{ color: '#94a3b8', fontSize: '14px', margin: '4px 0' }}>
+                                    <strong style={{ color: '#cbd5e1' }}>Phone:</strong> {patient.phone_number}
+                                </p>
+                            )}
+                            <button
+                                onClick={(e) => deletePatient(patient.id, patient.name, e)}
+                                style={{
+                                    position: 'absolute', top: '14px', right: '14px',
+                                    background: 'none', border: 'none',
+                                    color: '#ef4444', fontSize: '18px', cursor: 'pointer'
+                                }}
+                                title="Delete Patient"
+                            >
+                                🗑️
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default DatabasePage;
