@@ -160,8 +160,8 @@ function Dashboard() {
         {/* Topbar */}
         <div className="dashboard-topbar">
           <div className="topbar-title">
-            <h1>🏥 Clinical Assistant</h1>
-            <span>Agentic Workflow System for Medical Management</span>
+            <h1>🏥 Dentrixa Ai</h1>
+            <span>Agentic Dental Management System</span>
           </div>
         </div>
 
