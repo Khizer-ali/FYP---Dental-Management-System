@@ -188,7 +188,7 @@
 }
 
 .dark-btn {
-  background-color: #3b82f6;
+  background-color: #0d4297;
   color: white;
   border: none;
   padding: 10px 20px;
@@ -260,8 +260,8 @@
 }
 
 .action-btn.primary {
-  background-color: #22c55e;
-  border-color: #16a34a;
+  background-color: #0d6d30;
+  border-color: #0d6d30;
   color: white;
   justify-content: center;
   font-weight: 600;
