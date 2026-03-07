@@ -119,7 +119,7 @@ function Dashboard() {
     setLoading(true);
     const { phone_number } = formData;
     if (phone_number && !PAK_PHONE_REGEX.test(phone_number)) {
-      showMessage('Invalid Pakistan phone number format', 'error');
+      showMessage('Invalid', 'error');
       setLoading(false);
       return;
     }

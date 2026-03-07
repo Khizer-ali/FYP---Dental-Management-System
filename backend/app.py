@@ -102,7 +102,7 @@ def create_patient():
         # Regex for Pakistan: Mobile (3xx) and Landline codes
         pak_regex = r'^(\+92|92|0|0092)?(3\d{9}|(2[1-2]|25|4[1-2]|4[4,6-8]|5[1-3,5-8]|6[1-8]|7[1,4]|81|91|9[3-4,6])\d{7,8})$'
         if not re.match(pak_regex, phone_number):
-            return jsonify({'error': 'Invalid Pakistan phone number format. Examples: 03001234567, +923001234567, 02131234567'}), 400
+            return jsonify({'error': 'Invalid'}), 400
 
     patient = Patient(reference_number=ref_number, name=name, phone_number=phone_number)
     db.session.add(patient)
