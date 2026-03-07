@@ -5,6 +5,7 @@ Main application file with API endpoints
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import os
+import re
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import uuid
@@ -95,6 +96,14 @@ def create_patient():
         ref_number = f"{ref_number}-{str(uuid.uuid4())[:4].upper()}"
     
     phone_number = data.get('phone_number')
+    
+    # Pakistan Phone Number Validation
+    if phone_number:
+        # Regex for Pakistan: Mobile (3xx) and Landline codes
+        pak_regex = r'^(\+92|92|0|0092)?(3\d{9}|(2[1-2]|25|4[1-2]|4[4,6-8]|5[1-3,5-8]|6[1-8]|7[1,4]|81|91|9[3-4,6])\d{7,8})$'
+        if not re.match(pak_regex, phone_number):
+            return jsonify({'error': 'Invalid Pakistan phone number format. Examples: 03001234567, +923001234567, 02131234567'}), 400
+
     patient = Patient(reference_number=ref_number, name=name, phone_number=phone_number)
     db.session.add(patient)
     db.session.commit()

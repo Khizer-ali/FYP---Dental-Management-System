@@ -6,6 +6,7 @@ const API_BASE = 'http://localhost:5000/api';
 const CHART_W = 560;
 const CHART_H = 160;
 const PAD = { top: 20, right: 20, bottom: 30, left: 42 };
+const PAK_PHONE_REGEX = /^(\+92|92|0|0092)?(3\d{9}|(2[1-2]|25|4[1-2]|4[4,6-8]|5[1-3,5-8]|6[1-8]|7[1,4]|81|91|9[3-4,6])\d{7,8})$/;
 
 function PatientTrendsChart({ data }) {
   if (!data || data.length === 0) return null;
@@ -116,6 +117,13 @@ function Dashboard() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    const { phone_number } = formData;
+    if (phone_number && !PAK_PHONE_REGEX.test(phone_number)) {
+      showMessage('Invalid Pakistan phone number format', 'error');
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch(`${API_BASE}/patients`, {
         method: 'POST',
