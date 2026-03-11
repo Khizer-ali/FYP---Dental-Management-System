@@ -8,14 +8,13 @@ Flask REST API and **agentic workflow** for the Clinical Assistant: document par
 
 ## Tech Stack
 
-| Technology | Purpose |
-|------------|---------|
-| **Flask 3** | Web framework |
+| **Flask 3** | Web framework for consolidated APIs |
 | **Flask-CORS** | Cross-origin for frontend |
 | **Flask-SQLAlchemy** | ORM and DB setup |
 | **python-dotenv** | Env from `.env` |
 | **PyPDF2, pdf2image, pytesseract, Pillow** | Document and image processing |
 | **google-generativeai** | Chatbot (Gemini API); set `GEMINI_API_KEY` in `.env` |
+| **python-jose, passlib[bcrypt]** | JWT handling & secure password hashing |
 
 ---
 
@@ -34,9 +33,14 @@ backend/
 │   └── chatbot_agent.py     # AI answers using patient context
 ├── instance/                 # SQLite DB (created at runtime)
 ├── uploads/                  # documents/, images/ (created at runtime)
-├── app.py                    # Flask app and routes
+├── app.py                    # Flask clinical APIs (patients, agents, billing)
 ├── config.py                 # Config from env
-├── database.py               # Models: Patient, Document, Vital, etc.
+├── routes/
+│   ├── auth_routes.py        # /auth endpoints (login, register, me)
+│   └── user_routes.py        # /users endpoints (admin/doctor-protected)
+├── auth_utils.py             # JWT & Password helpers
+├── config.py                 # Config from env
+├── database.py               # Models: Patient, Document, Vital, User, etc.
 ├── requirements.txt
 └── README.md
 ```
@@ -70,14 +74,15 @@ pip install -r requirements.txt
 - **macOS:** `brew install tesseract`
 - **Linux:** `sudo apt-get install tesseract-ocr`
 
-### 4. Run
+### Run Flask consolidated API
 
 ```bash
 python app.py
 ```
 
 Runs at **http://localhost:5000** (debug).  
-On startup: `db.create_all()`, `uploads/` and `uploads/documents`, `uploads/images` are created.
+Includes clinical data APIs AND authentication (JWT, roles).
+On startup: `db.create_all()` handles all tables including Patients and Users.
 
 ---
 
@@ -86,10 +91,11 @@ On startup: `db.create_all()`, `uploads/` and `uploads/documents`, `uploads/imag
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `SECRET_KEY` | Flask secret | `dev-secret-key-change-in-production` |
-| `DATABASE_URL` | SQLAlchemy URI | `sqlite:///clinical_assistant.db` |
+| `DATABASE_URL` | SQLAlchemy URI (Flask DB or FastAPI auth DB) | `sqlite:///clinical_assistant.db` (Flask) / `sqlite:///./dental_auth.db` (FastAPI) |
+| `AUTH_SECRET_KEY` | JWT signing key for auth service | — (must be set in production) |
 | `GEMINI_API_KEY` | Google Gemini API key for chatbot | — (chatbot uses fallback if unset) |
 
-Create `.env` in `backend/` if you need to override. `config.py` uses `python-dotenv`. Get a free API key at [Google AI Studio](https://aistudio.google.com/app/apikey).
+Create `.env` in `backend/` if you need to override. `config.py` uses `python-dotenv` for Flask, and the FastAPI auth service reads env variables directly. Get a free API key at [Google AI Studio](https://aistudio.google.com/app/apikey).
 
 ---
 
@@ -191,6 +197,29 @@ Create `.env` in `backend/` if you need to override. `config.py` uses `python-do
 - **Chatbot Agent** — `generate_response(question, context)`; uses patient context; can use local transformers or fallback
 
 ---
+
+## Auth API (Flask)
+
+**Base URL:** `http://localhost:5000`
+
+### Authentication & Users
+
+| Endpoint | Method | Description | Role |
+|----------|--------|-------------|------|
+| `/auth/register_admin` | POST | Create the **first** admin user | Public (one-time bootstrap) |
+| `/auth/create_doctor` | POST | Create a doctor account | Admin |
+| `/auth/login` | POST | Login as admin/doctor, returns JWT | Public |
+| `/auth/me` | GET | Get current authenticated user | Authenticated |
+| `/users/` | GET | List all users | Admin |
+| `/users/{user_id}` | PATCH | Update a user (name, role, active) | Admin |
+| `/users/me/patients` | GET | Example doctor-only endpoint | Doctor |
+
+**JWT details**
+
+- Token type: **Bearer**
+- Signing: `HS256` using `AUTH_SECRET_KEY` (or `SECRET_KEY` if set)
+- Expiration: **2 hours** (`exp` claim)
+- Payload includes: `sub` (user id), `role` (`admin` or `doctor`), `exp`
 
 ## File Uploads
 

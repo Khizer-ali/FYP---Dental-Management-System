@@ -5,13 +5,14 @@ Main application file with API endpoints
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import os
-import re
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import uuid
 from config import Config
-from database import db, Patient, Document, Vital, FamilyHistory, MedicalImage, DentalAssessment, Bill, BillItem, Appointment
+from database import db, User, UserRole, Patient, Document, Vital, FamilyHistory, MedicalImage, DentalAssessment, Bill, BillItem, Appointment
 from agents.master_agent import MasterAgent
+from routes.auth_routes import auth_bp
+from routes.user_routes import user_bp
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -23,6 +24,10 @@ db.init_app(app)
 # Initialize master agent
 master_agent = MasterAgent()
 
+# Register blueprints
+app.register_blueprint(auth_bp)
+app.register_blueprint(user_bp)
+
 # Create upload directory
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'documents'), exist_ok=True)
@@ -32,8 +37,13 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
 @app.route('/api/health')
+@app.route('/health')
 def health():
-    return jsonify({"status": "backend running"})
+    return jsonify({
+        "status": "backend running",
+        "auth_service": "integrated",
+        "version": "1.0.0"
+    })
 
 @app.route('/api/agents/status')
 def agents_status():
@@ -96,7 +106,6 @@ def create_patient():
         ref_number = f"{ref_number}-{str(uuid.uuid4())[:4].upper()}"
     
     phone_number = data.get('phone_number')
-    cnic = data.get('cnic')
     
     # Pakistan Phone Number Validation
     if phone_number:
@@ -105,13 +114,7 @@ def create_patient():
         if not re.match(pak_regex, phone_number):
             return jsonify({'error': 'Invalid'}), 400
 
-    # CNIC Validation (XXXXX-XXXXXXX-X)
-    if cnic:
-        cnic_regex = r'^\d{5}-\d{7}-\d{1}$'
-        if not re.match(cnic_regex, cnic):
-            return jsonify({'error': 'Invalid CNIC format. Use XXXXX-XXXXXXX-X'}), 400
-
-    patient = Patient(reference_number=ref_number, name=name, phone_number=phone_number, cnic=cnic)
+    patient = Patient(reference_number=ref_number, name=name, phone_number=phone_number)
     db.session.add(patient)
     db.session.commit()
     

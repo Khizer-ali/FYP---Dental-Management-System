@@ -16,6 +16,16 @@ Pillow==10.1.0
 # AI/ML - chatbot (Gemini API; set GEMINI_API_KEY in .env)
 google-generativeai>=0.8.0
 
+# Auth and Security
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+bcrypt==4.0.1
+email-validator>=2.2.0
+
+# Database
+SQLAlchemy>=2.0.0
+psycopg2-binary>=2.9.0
+
 # Note: For OCR to work, you also need to install Tesseract OCR:
 # Windows: Download from https://github.com/UB-Mannheim/tesseract/wiki
 # macOS: brew install tesseract

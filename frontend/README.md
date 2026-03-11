@@ -27,7 +27,11 @@ frontend/
 │   ├── components/      # Reusable components
 │   ├── pages/           # Route pages
 │   │   ├── Dashboard.jsx
-│   │   └── PatientDetails.jsx
+│   │   ├── DatabasePage.jsx
+│   │   ├── PatientDetails.jsx
+│   │   ├── AppointmentsPage.jsx
+│   │   ├── BillingHistoryPage.jsx
+│   │   └── AuthPage.jsx
 │   ├── styles/          # CSS
 │   ├── App.jsx
 │   ├── main.jsx
@@ -58,8 +62,20 @@ npm install
 npm run dev
 ```
 
-The app expects the backend at **http://localhost:5000**.  
+The app expects the **clinical Flask backend** at **http://localhost:5000**.  
 `API_BASE` is set to `http://localhost:5000/api` in the page components.
+
+If you add authenticated endpoints to the React app, you can also call the **FastAPI auth service** running at **http://localhost:8000** for:
+
+- `/auth/login` — obtain a JWT (`access_token`)
+- `/auth/me` — fetch current user
+- other `/users/*` endpoints (admin/doctor only)
+
+Store the `access_token` in memory or secure storage and send it as:
+
+```text
+Authorization: Bearer <access_token>
+```
 
 ---
 
@@ -67,8 +83,12 @@ The app expects the backend at **http://localhost:5000**.
 
 | Path | Page | Description |
 |------|------|-------------|
-| `/` | Dashboard | Create patient, list patients, agent cards |
-| `/patient/:patientId` | PatientDetails | Tabs: Documents, Vitals, Family History, Images, Teeth X-Ray, Billing, Chatbot |
+| `/` | Dashboard | Create patient, list patients, analytics, quick actions |
+| `/database` | DatabasePage | Grid view of all patients, delete & drill-down |
+| `/patient/:patientId` | PatientDetails | Tabs: Documents, Vitals, Family History, Images, Teeth X-Ray, Billing, Chatbot, Appointments |
+| `/appointments` | AppointmentsPage | Overview of all appointments across patients |
+| `/billing` | BillingHistoryPage | Overview of all bills across patients |
+| `/login` | AuthPage | Login / first-admin signup, integrated with FastAPI auth API |
 
 ---
 
@@ -92,12 +112,14 @@ The app expects the backend at **http://localhost:5000**.
 
 ## API Base URL
 
-API calls use `http://localhost:5000/api`. To change it, update `API_BASE` in:
+API calls for clinical data use `http://localhost:5000/api`. To change it, update `API_BASE` in:
 
 - `src/pages/Dashboard.jsx`
 - `src/pages/PatientDetails.jsx`
 
-For production, use env or build-time config (e.g. Vite `import.meta.env`).
+For any future auth-aware components, consider exposing an `AUTH_BASE` (e.g. `http://localhost:8000`) via `import.meta.env` and using it for `/auth/*` and `/users/*` routes.
+
+For production, use env or build-time config (e.g. Vite `import.meta.env`) for both `API_BASE` and any `AUTH_BASE` you introduce.
 
 ---
 

@@ -1,140 +1,243 @@
-# Dental System — Clinical Assistant
+# Dental System — Backend
 
-A full-stack **Clinical Assistant** application for medical and dental practice management. This system leverages an **agentic workflow** with specialized AI and processing agents to manage patient records, clinical data, and administrative tasks.
+# Dental System — Backend
+
+Flask REST API and **agentic workflow** for the Clinical Assistant: document parsing, vitals, family history, medical images, teeth (dental) annotations, AI chatbot, and billing integration. Uses SQLAlchemy (SQLite by default) and a Master Agent that orchestrates specialist agents.
 
 ---
 
-## 🔄 Project Workflow
-The following diagram illustrates the agentic workflow and data flow within the Clinical Assistant system:
+## Tech Stack
 
-```mermaid
-graph TD
-    User((User/Dentist)) -->|Interacts with| Frontend[React Frontend]
-    
-    subgraph "Frontend Pages"
-        Frontend --> Dash[Dashboard]
-        Frontend --> DBPage[Patient Database]
-        Frontend --> PDetails[Patient Details]
-    end
+| **Flask 3** | Web framework for consolidated APIs |
+| **Flask-CORS** | Cross-origin for frontend |
+| **Flask-SQLAlchemy** | ORM and DB setup |
+| **python-dotenv** | Env from `.env` |
+| **PyPDF2, pdf2image, pytesseract, Pillow** | Document and image processing |
+| **google-generativeai** | Chatbot (Gemini API); set `GEMINI_API_KEY` in `.env` |
+| **python-jose, passlib[bcrypt]** | JWT handling & secure password hashing |
 
-    PDetails -->|Triggers| Backend[Flask REST API]
+---
 
-    subgraph "Agentic Workflow (Backend)"
-        Backend --> Master[Master Agent]
-        Master --> DocA[Document Agent]
-        Master --> VitA[Vitals Agent]
-        Master --> FamA[Family History Agent]
-        Master --> ImgA[Image Agent]
-        Master --> TeethA[Teeth Agent]
-        Master --> ChatA[Chatbot Agent]
-    end
+## Project Structure
 
-    DocA -->|OCR/Parsing| DB[(SQLite Database)]
-    VitA -->|Validation| DB
-    FamA -->|Validation| DB
-    ImgA -->|Storage| DB
-    TeethA -->|Mapping| DB
-    ChatA -->|Contextual Retrieval| Master
-    Master -->|Fetch Context| DB
-    
-    subgraph "Background Services"
-        Backend --> Appt[Appointment System]
-        Appt --> SMS[SMS Alert Stub]
-    end
+```
+backend/
+├── agents/
+│   ├── __init__.py
+│   ├── master_agent.py      # Orchestrates sub-agents
+│   ├── document_agent.py    # PDF/TXT/image parsing, OCR
+│   ├── vitals_agent.py      # Validate and store vitals
+│   ├── family_history_agent.py
+│   ├── image_agent.py       # Validate and store medical images
+│   ├── teeth_agent.py       # Tooth conditions (root, cavity, both)
+│   └── chatbot_agent.py     # AI answers using patient context
+├── instance/                 # SQLite DB (created at runtime)
+├── uploads/                  # documents/, images/ (created at runtime)
+├── app.py                    # Flask clinical APIs (patients, agents, billing)
+├── config.py                 # Config from env
+├── routes/
+│   ├── auth_routes.py        # /auth endpoints (login, register, me)
+│   └── user_routes.py        # /users endpoints (admin/doctor-protected)
+├── auth_utils.py             # JWT & Password helpers
+├── config.py                 # Config from env
+├── database.py               # Models: Patient, Document, Vital, User, etc.
+├── requirements.txt
+└── README.md
 ```
 
 ---
 
-## 📁 Project Structure
+## Setup
 
-```
-Dental System/
-├── frontend/          # React + Vite SPA
-│   ├── src/
-│   │   ├── pages/     # Dashboard, Database, PatientDetails
-│   │   ├── components/# Reusable UI elements
-│   │   └── styles/    # Vanilla CSS
-├── backend/           # Flask REST API + Python agents
-│   ├── agents/        # Specialized AI/Processing agents
-│   ├── uploads/       # Persistent storage for docs/images
-│   ├── app.py         # Main API routes
-│   └── database.py    # SQLAlchemy models
-├── README.md          # Project Overview
-```
+### 1. Virtual environment
 
-| Part | Tech | Purpose |
-|------|------|---------|
-| **Frontend** | React 19, Vite 7, React Router | Modern UI, responsive dashboard, real-time updates |
-| **Backend** | Flask, SQLAlchemy, Python agents | REST API, orchestration, AI logic, data persistence |
-
----
-
-## ✨ Key Features
-
-- **Patient Management**
-  - **Dashboard**: Quick entry and recent activity.
-  - **Patient Database**: Searchable list with full CRUD operations (Create, Read, Delete).
-- **Agentic Clinical Suite**
-  - **Document Agent**: Automatic OCR (Tesseract) for PDFs and images to extract medical history.
-  - **Vitals Agent**: Systematic tracking of temperature, weight, height, BP, SpO₂, etc.
-  - **Family History Agent**: Captures hereditary conditions and risk factors.
-  - **Image Agent**: Secure upload and management of medical imagery (PNG, JPG, DICOM).
-  - **Teeth Agent**: Interactive 32-tooth chart for root canal and cavity annotations.
-  - **Chatbot Agent (Gemini)**: Context-aware AI that answers questions based on the *entire* patient history.
-- **Administrative Tools**
-  - **Billing System**: Dynamic invoice generation with itemized services and PDF printing.
-  - **Appointment Scheduling**: integrated calendar with SMS reminder system (stubbed).
-
----
-
-## 🚀 Quick Start
-
-### 1. Backend Setup
 ```bash
 cd backend
 python -m venv venv
+
 # Windows:
 venv\Scripts\activate
-# macOS/Linux: source venv/bin/activate
 
+# macOS/Linux:
+source venv/bin/activate
+```
+
+### 2. Dependencies
+
+```bash
 pip install -r requirements.txt
+```
+
+### 3. Tesseract (for document OCR)
+
+- **Windows:** [Tesseract installer](https://github.com/UB-Mannheim/tesseract/wiki)
+- **macOS:** `brew install tesseract`
+- **Linux:** `sudo apt-get install tesseract-ocr`
+
+### Run Flask consolidated API
+
+```bash
 python app.py
 ```
-*API runs at http://localhost:5000. SQLite DB is initialized automatically.*
 
-### 2. Frontend Setup
-```bash
-cd frontend
-npm install
-npm run dev
-```
-*App runs at http://localhost:5173.*
-
-### 3. Prerequisites
-- **Node.js** 18+
-- **Python** 3.10+
-- **Tesseract OCR**: Required for the Document Agent. [Installation Guide](https://github.com/UB-Mannheim/tesseract/wiki)
+Runs at **http://localhost:5000** (debug).  
+Includes clinical data APIs AND authentication (JWT, roles).
+On startup: `db.create_all()` handles all tables including Patients and Users.
 
 ---
 
-## 🔌 API Overview (Selected)
+## Environment
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SECRET_KEY` | Flask secret | `dev-secret-key-change-in-production` |
+| `DATABASE_URL` | SQLAlchemy URI (Flask DB or FastAPI auth DB) | `sqlite:///clinical_assistant.db` (Flask) / `sqlite:///./dental_auth.db` (FastAPI) |
+| `AUTH_SECRET_KEY` | JWT signing key for auth service | — (must be set in production) |
+| `GEMINI_API_KEY` | Google Gemini API key for chatbot | — (chatbot uses fallback if unset) |
+
+Create `.env` in `backend/` if you need to override. `config.py` uses `python-dotenv` for Flask, and the FastAPI auth service reads env variables directly. Get a free API key at [Google AI Studio](https://aistudio.google.com/app/apikey).
+
+---
+
+## Database Models
+
+- **Patient** — `id`, `reference_number`, `name`, `created_at`, `updated_at`
+- **Document** — `patient_id`, `filename`, `file_path`, `parsed_text`, `document_type`, `uploaded_at`
+- **Vital** — `patient_id`, temperature, weight, height, BP, heart rate, respiratory rate, SpO₂, `recorded_at`
+- **FamilyHistory** — `patient_id`, `condition`, `relation`, `age_of_onset`, `notes`, `recorded_at`
+- **MedicalImage** — `patient_id`, `filename`, `file_path`, `image_type`, `description`, `uploaded_at`
+- **DentalAssessment** — `patient_id`, `tooth_id`, `condition` (root/cavity/both), `updated_at`; unique per `(patient_id, tooth_id)`
+- **Bill** — `patient_id`, `invoice_number`, `staff_name`, `appointment_date`, subtotals/totals, `payment_method`, `created_at`
+- **BillItem** — `bill_id`, `service_name`, `quantity`, `price`, `total`
+
+---
+
+## API Endpoints
+
+### System
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/patients` | GET, POST, DELETE | Manage patient records |
-| `/api/patients/:id/context` | GET | Aggregate history for AI analysis |
-| `/api/patients/:id/documents` | POST | Upload with auto-OCR processing |
-| `/api/patients/:id/chat` | POST | Secure AI query about patient |
-| `/api/bills` | POST | Finalize medical invoices |
-| `/api/patients/:id/appointments`| GET, POST | Manage clinical schedules |
+| `/api/health` | GET | `{"status": "backend running"}` |
+| `/api/agents/status` | GET | Status of master + document, vitals, family_history, chatbot, image, teeth |
+
+### Patients
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/patients` | GET | List all patients |
+| `/api/patients` | POST | Create (JSON: `name`, optional `reference_number`) |
+| `/api/patients/<id>` | GET | Get one patient |
+| `/api/patients/<id>/context` | GET | Full context for chatbot (docs, vitals, family, etc.) |
+
+### Documents
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/patients/<id>/documents` | GET | List documents |
+| `/api/patients/<id>/documents` | POST | `multipart/form-data`: `file`, `document_type` (default "Medical Report") |
+
+### Vitals
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/patients/<id>/vitals` | GET | List vitals |
+| `/api/patients/<id>/vitals` | POST | JSON: temperature, weight, height, blood_pressure_systolic/diastolic, heart_rate, respiratory_rate, oxygen_saturation |
+
+### Family History
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/patients/<id>/family-history` | GET | List entries |
+| `/api/patients/<id>/family-history` | POST | JSON: `condition`, `relation`, `age_of_onset`, `notes` |
+
+### Images
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/patients/<id>/images` | GET | List images |
+| `/api/patients/<id>/images` | POST | `multipart/form-data`: `file`, `image_type`, `description` |
+
+### Teeth
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/patients/<id>/teeth` | GET | `{ tooth_id: condition, ... }` |
+| `/api/patients/<id>/teeth` | POST | JSON: `tooth_id`, `condition` (`"root"`, `"cavity"`, `"both"`, or `""` to clear) |
+
+### Chatbot
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/patients/<id>/chat` | POST | JSON: `question` → `{ question, response, patient_context_used }` |
+
+### Billing
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/bills` | POST | Save a new bill and its items |
+| `/api/patients/<id>/bills` | GET | List bills for a patient |
+
+### Static
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/uploads/<path>` | GET | Serve files from `uploads/` |
 
 ---
 
-## 📄 Documentation
-- [Frontend Detailed Guide](frontend/README.md)
-- [Backend Detailed Guide](backend/README.md)
+## Agents
+
+- **Master Agent** — `get_patient_context()`, `get_agent(name)`
+- **Document Agent** — `parse_document()`, `store_document()`; PDF, TXT, images; OCR via Tesseract
+- **Vitals Agent** — `validate_vitals()`, `store_vitals()`
+- **Family History Agent** — `validate_family_history()`, `store_family_history()`
+- **Image Agent** — `validate_image()`, `process_image()`, `store_image()`; PNG, JPG, DICOM
+- **Teeth Agent** — `get_teeth()`, `update_tooth_condition()`; `tooth_id` (e.g. `t1`–`t32`), `condition`: root/cavity/both or empty
+- **Chatbot Agent** — `generate_response(question, context)`; uses patient context; can use local transformers or fallback
 
 ---
 
-## 🔒 License
-Proprietary / Internal Academic Project.
+## Auth API (Flask)
+
+**Base URL:** `http://localhost:5000`
+
+### Authentication & Users
+
+| Endpoint | Method | Description | Role |
+|----------|--------|-------------|------|
+| `/auth/register_admin` | POST | Create the **first** admin user | Public (one-time bootstrap) |
+| `/auth/create_doctor` | POST | Create a doctor account | Admin |
+| `/auth/login` | POST | Login as admin/doctor, returns JWT | Public |
+| `/auth/me` | GET | Get current authenticated user | Authenticated |
+| `/users/` | GET | List all users | Admin |
+| `/users/{user_id}` | PATCH | Update a user (name, role, active) | Admin |
+| `/users/me/patients` | GET | Example doctor-only endpoint | Doctor |
+
+**JWT details**
+
+- Token type: **Bearer**
+- Signing: `HS256` using `AUTH_SECRET_KEY` (or `SECRET_KEY` if set)
+- Expiration: **2 hours** (`exp` claim)
+- Payload includes: `sub` (user id), `role` (`admin` or `doctor`), `exp`
+
+## File Uploads
+
+- **Config:** `UPLOAD_FOLDER='uploads'`, `MAX_CONTENT_LENGTH=16MB`
+- **Document types:** `pdf`, `txt`, `png`, `jpg`, `jpeg`, `dicom`, `dcm`
+- **Paths:** `uploads/documents/`, `uploads/images/`; filenames prefixed with `YYYYMMDD_HHMMSS_`
+
+---
+
+## Production Notes
+
+- Set `SECRET_KEY` and, if needed, `DATABASE_URL` (e.g. PostgreSQL).
+- Run with a WSGI server (e.g. Gunicorn): `gunicorn -w 4 -b 0.0.0.0:5000 app:app`
+- Ensure `uploads/` is writable and, if applicable, served or proxied for `/uploads/`.
+- For OCR, Tesseract must be installed and on `PATH` where the app runs.
+
+---
+
+## License
+
+Proprietary / Internal use.

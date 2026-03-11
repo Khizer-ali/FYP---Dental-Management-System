@@ -8,7 +8,6 @@ const API_BASE = 'http://localhost:5000/api';
 const CHART_W = 560;
 const CHART_H = 160;
 const PAD = { top: 20, right: 20, bottom: 30, left: 42 };
-const PAK_PHONE_REGEX = /^(\+92|92|0|0092)?(3\d{9}|(2[1-2]|25|4[1-2]|4[4,6-8]|5[1-3,5-8]|6[1-8]|7[1,4]|81|91|9[3-4,6])\d{7,8})$/;
 
 function PatientTrendsChart({ data }) {
   if (!data || data.length === 0) return null;
@@ -183,6 +182,11 @@ function Dashboard() {
   const [formData, setFormData] = useState({ name: '', cnic: '', phone_number: '' });
   const navigate = useNavigate();
 
+  const currentUser = (() => {
+    try { return JSON.parse(window.localStorage.getItem('authUser')); } catch { return null; }
+  })();
+  const isLoggedIn = !!window.localStorage.getItem('authToken') && !!currentUser;
+
   const [time, setTime] = useState(new Date());
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 60000);
@@ -232,13 +236,6 @@ function Dashboard() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const { phone_number } = formData;
-    if (phone_number && !PAK_PHONE_REGEX.test(phone_number)) {
-      showMessage('Invalid', 'error');
-      setLoading(false);
-      return;
-    }
-
     try {
       const response = await fetch(`${API_BASE}/patients`, {
         method: 'POST',
@@ -280,22 +277,49 @@ function Dashboard() {
     <div className="dashboard-layout">
       {/* Sidebar */}
       <div className="dashboard-sidebar">
-        <div className="sidebar-icon active" title="Dashboard">⊞</div>
+        <div className="sidebar-icon active" title="Dashboard" onClick={() => navigate('/dashboard')}>⊞</div>
         <div className="sidebar-icon" title="Patients" onClick={() => navigate('/database')}>👥</div>
         <div className="sidebar-icon" title="Appointments" onClick={() => navigate('/appointments')}>📅</div>
         <div className="sidebar-icon" title="Billing" onClick={() => navigate('/billing')}>💳</div>
-        <div className="sidebar-icon" title="Settings">⚙️</div>
-        <div className="sidebar-icon" style={{ marginTop: 'auto', marginBottom: '20px' }} title="Back to home" onClick={() => navigate('/')}>🚪</div>
+        {currentUser?.role === 'admin' && (
+          <div className="sidebar-icon" title="Manage Doctors" onClick={() => navigate('/doctors')}>👨‍⚕️</div>
+        )}
+        <div
+          className="sidebar-icon"
+          title={isLoggedIn ? `Signed in as ${currentUser?.name}` : 'Sign In / Account'}
+          onClick={() => navigate('/')}
+          style={{ marginTop: currentUser?.role !== 'admin' ? 'auto' : undefined }}
+        >
+          {isLoggedIn ? '🔓' : '🔐'}
+        </div>
+        {isLoggedIn && (
+          <div style={{ fontSize: '9px', color: '#64748b', textAlign: 'center', marginBottom: '4px', maxWidth: '50px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: '0 4px' }}>
+            {currentUser?.name?.split(' ')[0]}
+          </div>
+        )}
       </div>
 
       {/* Main Content */}
       <div className="dashboard-main">
         {/* Topbar */}
-        <div className="dashboard-topbar">
+        <div className="dashboard-topbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div className="topbar-title">
-            <h1>🏥 Dentrixa Ai</h1>
-            <span>Agentic Dental Management System</span>
+            <h1>🏥 {currentUser?.role === 'admin' ? 'Admin Dashboard' : 'Doctor Dashboard'}</h1>
+            <span>Agentic Workflow System for Medical Management</span>
           </div>
+          <button
+            className="dark-btn"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', fontWeight: '600' }}
+            onClick={() => {
+              window.localStorage.removeItem('authToken');
+              window.localStorage.removeItem('authUser');
+              navigate('/');
+            }}
+            onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+            onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+          >
+            🚪 Sign Out
+          </button>
         </div>
 
         {/* Dashboard Grid */}
