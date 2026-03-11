@@ -33,6 +33,7 @@ function BillingHistoryPage() {
     }, []);
 
     const totalRevenue = bills.reduce((sum, b) => sum + (b.grand_total || 0), 0);
+    const totalOutstanding = bills.reduce((sum, b) => sum + (b.outstanding_amount || 0), 0);
 
     return (
         <div style={pageStyle}>
@@ -43,6 +44,7 @@ function BillingHistoryPage() {
                         <p style={{ margin: '5px 0 0', color: '#94a3b8', fontSize: '14px' }}>
                             Full invoice history &nbsp;·&nbsp;
                             <span style={{ color: '#22c55e', fontWeight: '600' }}>PKR {totalRevenue.toFixed(2)} total revenue</span>
+                            {totalOutstanding > 0 && <span style={{ color: '#fb923c', fontWeight: '600', marginLeft: '12px' }}>PKR {totalOutstanding.toFixed(2)} outstanding</span>}
                         </p>
                     </div>
                     <button onClick={() => navigate('/')} style={backBtnStyle}>← Back to Dashboard</button>
@@ -57,8 +59,8 @@ function BillingHistoryPage() {
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ background: 'rgba(255,255,255,0.04)' }}>
-                                    {['Date', 'Invoice #', 'Patient', 'Staff', 'Discount', 'Amount', 'Method'].map(h => (
-                                        <th key={h} style={{ padding: '14px 16px', textAlign: (h === 'Amount' || h === 'Discount') ? 'right' : 'left', color: '#64748b', fontSize: '13px', fontWeight: '600', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>{h}</th>
+                                    {['Date', 'Invoice #', 'Patient', 'Staff', 'Discount', 'Amount', 'Outstanding', 'Method'].map(h => (
+                                        <th key={h} style={{ padding: '14px 16px', textAlign: (h === 'Amount' || h === 'Discount' || h === 'Outstanding') ? 'right' : 'left', color: '#64748b', fontSize: '13px', fontWeight: '600', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>{h}</th>
                                     ))}
                                 </tr>
                             </thead>
@@ -75,6 +77,9 @@ function BillingHistoryPage() {
                                         <td style={{ padding: '14px 16px', color: '#22c55e', fontWeight: '700', fontSize: '15px', textAlign: 'right' }}>
                                             PKR {bill.grand_total?.toFixed(2)}
                                         </td>
+                                        <td style={{ padding: '14px 16px', color: '#fb923c', fontWeight: '600', fontSize: '14px', textAlign: 'right' }}>
+                                            {bill.outstanding_amount > 0 ? `PKR ${bill.outstanding_amount.toFixed(2)}` : '—'}
+                                        </td>
                                         <td style={{ padding: '14px 16px', color: '#94a3b8', fontSize: '13px' }}>{bill.payment_method}</td>
                                     </tr>
                                 ))}
@@ -83,6 +88,7 @@ function BillingHistoryPage() {
                                 <tr style={{ background: 'rgba(34,197,94,0.05)', borderTop: '1px solid rgba(34,197,94,0.2)' }}>
                                     <td colSpan={5} style={{ padding: '14px 16px', color: '#94a3b8', fontWeight: '600', fontSize: '14px' }}>Total Revenue ({bills.length} invoices)</td>
                                     <td style={{ padding: '14px 16px', color: '#22c55e', fontWeight: '700', fontSize: '16px', textAlign: 'right' }}>PKR {totalRevenue.toFixed(2)}</td>
+                                    <td style={{ padding: '14px 16px', color: '#fb923c', fontWeight: '700', fontSize: '14px', textAlign: 'right' }}>{totalOutstanding > 0 ? `PKR ${totalOutstanding.toFixed(2)}` : ''}</td>
                                     <td></td>
                                 </tr>
                             </tfoot>

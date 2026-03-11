@@ -54,7 +54,7 @@ function DoctorsPage() {
                 showMessage('Failed to load users.', 'error');
             }
         } catch {
-            showMessage('Cannot connect to auth service (port 8000).', 'error');
+            showMessage('Cannot connect to auth service (port 5000).', 'error');
         } finally {
             setLoading(false);
         }

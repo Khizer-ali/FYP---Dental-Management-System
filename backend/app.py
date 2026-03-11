@@ -146,6 +146,19 @@ def get_patient_context(patient_id):
         return jsonify({'error': 'Patient not found'}), 404
     return jsonify(context)
 
+@app.route('/api/patients/<int:patient_id>/visibility', methods=['PATCH'])
+def toggle_patient_visibility(patient_id):
+    """Toggle a patient's hidden status"""
+    patient = Patient.query.get_or_404(patient_id)
+    data = request.json
+    
+    if 'is_hidden' in data:
+        patient.is_hidden = bool(data['is_hidden'])
+        db.session.commit()
+        return jsonify(patient.to_dict()), 200
+        
+    return jsonify({'error': 'is_hidden field required'}), 400
+
 # Document Agent Routes
 @app.route('/api/patients/<int:patient_id>/documents', methods=['POST'])
 def upload_document(patient_id):

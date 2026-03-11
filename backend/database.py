@@ -37,6 +37,7 @@ class Patient(db.Model):
     name = db.Column(db.String(200), nullable=False)
     phone_number = db.Column(db.String(50), nullable=True)
     cnic = db.Column(db.String(20), nullable=True)
+    is_hidden = db.Column(db.Boolean, default=False, nullable=False)
     teeth_drawing = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -55,6 +56,7 @@ class Patient(db.Model):
             'name': self.name,
             'phone_number': self.phone_number,
             'cnic': self.cnic,
+            'is_hidden': self.is_hidden,
             'teeth_drawing': self.teeth_drawing,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None

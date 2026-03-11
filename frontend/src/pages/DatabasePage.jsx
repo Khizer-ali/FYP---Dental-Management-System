@@ -10,6 +10,10 @@ function DatabasePage() {
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState({ text: '', type: '' });
     const navigate = useNavigate();
+    const currentUser = (() => {
+        try { return JSON.parse(window.localStorage.getItem('authUser')); } catch { return null; }
+    })();
+    const isAdmin = currentUser?.role === 'admin';
 
 
     const showMessage = (text, type) => {
@@ -52,10 +56,33 @@ function DatabasePage() {
 
     useEffect(() => { loadPatients(); }, []);
 
-    const filteredPatients = patients.filter(p =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (p.cnic && p.cnic.includes(searchQuery))
-    );
+    const toggleVisibility = async (patient, e) => {
+        e.stopPropagation();
+        try {
+            const response = await fetch(`${API_BASE}/patients/${patient.id}/visibility`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_hidden: !patient.is_hidden })
+            });
+            if (response.ok) {
+                showMessage(`Patient ${patient.name} is now ${!patient.is_hidden ? 'HIDDEN' : 'VISIBLE'}.`, 'success');
+                loadPatients();
+            } else {
+                showMessage('Failed to update visibility.', 'error');
+            }
+        } catch {
+            showMessage('Network error during visibility update.', 'error');
+        }
+    };
+
+    // Filter patients based on role and search query
+    // Doctors cannot see hidden patients
+    const filteredPatients = patients.filter(p => {
+        if (!isAdmin && p.is_hidden) return false;
+        
+        return p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+               (p.cnic && p.cnic.includes(searchQuery));
+    });
 
     return (
         <div style={{ minHeight: '100vh', background: '#0f172a', padding: '24px' }}>
@@ -127,12 +154,18 @@ function DatabasePage() {
                                 border: '1px solid rgba(255,255,255,0.08)',
                                 borderRadius: '10px', padding: '20px',
                                 cursor: 'pointer', position: 'relative',
-                                transition: 'border-color 0.2s, transform 0.2s, box-shadow 0.2s'
+                                transition: 'border-color 0.2s, transform 0.2s, box-shadow 0.2s',
+                                opacity: patient.is_hidden ? 0.6 : 1
                             }}
                             onMouseEnter={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(59,130,246,0.2)'; }}
                             onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
                         >
-                            <h3 style={{ color: '#3b82f6', marginBottom: '8px' }}>{patient.name}</h3>
+                            {patient.is_hidden && (
+                                <div style={{ position: 'absolute', top: '-10px', left: '14px', background: '#fb923c', color: '#fff', fontSize: '10px', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>
+                                    HIDDEN
+                                </div>
+                            )}
+                            <h3 style={{ color: '#3b82f6', marginBottom: '8px', paddingRight: '60px' }}>{patient.name}</h3>
                             <p style={{ color: '#94a3b8', fontSize: '14px', margin: '4px 0' }}>
                                 <strong style={{ color: '#cbd5e1' }}>Ref:</strong> {patient.reference_number}
                             </p>
@@ -149,17 +182,31 @@ function DatabasePage() {
                                     <strong style={{ color: '#cbd5e1' }}>Phone:</strong> {patient.phone_number}
                                 </p>
                             )}
-                            <button
-                                onClick={(e) => deletePatient(patient.id, patient.name, e)}
-                                style={{
-                                    position: 'absolute', top: '14px', right: '14px',
-                                    background: 'none', border: 'none',
-                                    color: '#ef4444', fontSize: '18px', cursor: 'pointer'
-                                }}
-                                title="Delete Patient"
-                            >
-                                🗑️
-                            </button>
+                            <div style={{ position: 'absolute', top: '14px', right: '14px', display: 'flex', gap: '8px' }}>
+                                {isAdmin && (
+                                    <button
+                                        onClick={(e) => toggleVisibility(patient, e)}
+                                        style={{
+                                            background: 'none', border: 'none',
+                                            color: patient.is_hidden ? '#22c55e' : '#fb923c', 
+                                            fontSize: '18px', cursor: 'pointer'
+                                        }}
+                                        title={patient.is_hidden ? "Unhide Patient" : "Hide Patient"}
+                                    >
+                                        {patient.is_hidden ? '👁️' : '🙈'}
+                                    </button>
+                                )}
+                                <button
+                                    onClick={(e) => deletePatient(patient.id, patient.name, e)}
+                                    style={{
+                                        background: 'none', border: 'none',
+                                        color: '#ef4444', fontSize: '18px', cursor: 'pointer'
+                                    }}
+                                    title="Delete Patient"
+                                >
+                                    🗑️
+                                </button>
+                            </div>
                         </div>
                     ))}
                 </div>

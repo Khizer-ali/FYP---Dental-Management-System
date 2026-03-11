@@ -8,6 +8,8 @@ backend/venv/
 instance/
 uploads/
 .env
+.env.*
+!.env.example
 
 # Node
 node_modules/

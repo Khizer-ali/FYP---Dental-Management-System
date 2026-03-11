@@ -20,11 +20,7 @@ function AuthPage() {
   const [signupForm, setSignupForm] = useState({ name: '', email: '', password: '' });
 
   // If already signed in, go straight to the app
-  useEffect(() => {
-    if (isLoggedIn) {
-      window.location.href = '/dashboard';
-    }
-  }, [isLoggedIn]);
+  // Removed automatic redirect to allow user to choose options on the logged-in screen
 
   // Check if auth service is reachable (best-effort; do not block login)
   useEffect(() => {
@@ -72,11 +68,11 @@ function AuthPage() {
         return;
       }
 
-      showMessage('Login successful! Redirecting…', 'success');
-      setTimeout(() => { window.location.href = '/dashboard'; }, 1000);
+      showMessage('Login successful!', 'success');
+      setTimeout(() => { window.location.reload(); }, 1000);
     } catch (err) {
       if (err.name === 'TypeError' && err.message.includes('fetch')) {
-        showMessage('Cannot connect to auth service (port 8000). Is the FastAPI server running?', 'error');
+        showMessage('Cannot connect to auth service (port 5000). Is the backend server running?', 'error');
       } else {
         showMessage('Network error: ' + err.message, 'error');
       }
@@ -104,7 +100,7 @@ function AuthPage() {
       setLoginForm({ email: signupForm.email, password: '' });
     } catch (err) {
       if (err.name === 'TypeError' && err.message.includes('fetch')) {
-        showMessage('Cannot connect to auth service (port 8000). Is the FastAPI server running?', 'error');
+        showMessage('Cannot connect to auth service (port 5000). Is the backend server running?', 'error');
       } else {
         showMessage('Network error: ' + err.message, 'error');
       }
@@ -141,8 +137,8 @@ function AuthPage() {
           <div className="status-dot" />
           <span>
             {serviceStatus === 'checking' && 'Checking auth service…'}
-            {serviceStatus === 'online' && 'Auth service online (port 8000)'}
-            {serviceStatus === 'offline' && 'Auth service offline — start FastAPI server first'}
+            {serviceStatus === 'online' && 'Auth service online (port 5000)'}
+            {serviceStatus === 'offline' && 'Auth service offline — start Flask server first'}
           </span>
         </div>
 

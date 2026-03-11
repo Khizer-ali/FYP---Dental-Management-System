@@ -343,47 +343,57 @@ function Dashboard() {
             </div>
           </div>
 
-          {/* Column 2: Create Patient */}
+          {/* Column 2: Create Patient (Doctors Only) */}
           <div className="dash-card create-patient-card">
-            <div className="card-title">Create New Patient</div>
-            <form onSubmit={handleSubmit} style={{ marginTop: '10px' }}>
-              <div className="dark-form-group">
-                <label>Patient Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Enter patient name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                />
+            {currentUser?.role !== 'admin' ? (
+              <>
+                <div className="card-title">Create New Patient</div>
+                <form onSubmit={handleSubmit} style={{ marginTop: '10px' }}>
+                  <div className="dark-form-group">
+                    <label>Patient Name *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Enter patient name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    />
+                  </div>
+                  <div className="dark-form-group">
+                    <label>CNIC (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="XXXXX-XXXXXXX-X"
+                      value={formData.cnic}
+                      onChange={handleCnicChange}
+                      maxLength={15}
+                    />
+                  </div>
+                  <div className="dark-form-group">
+                    <label>Phone Number (Optional)</label>
+                    <PhoneInput
+                      international
+                      defaultCountry="PK"
+                      value={formData.phone_number}
+                      onChange={(val) => setFormData({ ...formData, phone_number: val || '' })}
+                      className="dark-phone-input"
+                      maxLength={15}
+                    />
+                  </div>
+                  <button type="submit" className="dark-btn" disabled={loading}>
+                    {loading ? 'Creating...' : 'Create Patient'}
+                  </button>
+                </form>
+                {message.text && (
+                  <div className={`dash-message ${message.type}`}>{message.text}</div>
+                )}
+              </>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8', textAlign: 'center' }}>
+                <div style={{ fontSize: '40px', marginBottom: '10px', opacity: 0.5 }}>👨‍⚕️</div>
+                <h3 style={{ margin: '0 0 5px 0', color: 'white' }}>Doctor Access Required</h3>
+                <p style={{ margin: 0, fontSize: '13px' }}>Only doctors can register new patients.</p>
               </div>
-              <div className="dark-form-group">
-                <label>CNIC (Optional)</label>
-                <input
-                  type="text"
-                  placeholder="XXXXX-XXXXXXX-X"
-                  value={formData.cnic}
-                  onChange={handleCnicChange}
-                  maxLength={15}
-                />
-              </div>
-              <div className="dark-form-group">
-                <label>Phone Number (Optional)</label>
-                <PhoneInput
-                  international
-                  defaultCountry="PK"
-                  value={formData.phone_number}
-                  onChange={(val) => setFormData({ ...formData, phone_number: val || '' })}
-                  className="dark-phone-input"
-                  maxLength={15}
-                />
-              </div>
-              <button type="submit" className="dark-btn" disabled={loading}>
-                {loading ? 'Creating...' : 'Create Patient'}
-              </button>
-            </form>
-            {message.text && (
-              <div className={`dash-message ${message.type}`}>{message.text}</div>
             )}
           </div>
 
