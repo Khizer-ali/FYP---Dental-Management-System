@@ -203,7 +203,8 @@
     flex-wrap: wrap;
 }
 
-.invoice-payment-info input {
+.invoice-payment-info input,
+.invoice-payment-info select {
     font-weight: bold;
     color: #000;
 }
@@ -311,16 +312,16 @@
 
 .invoice-discount-container select {
     padding: 6px 10px;
-    border: 1px solid #ddd;
+    border: 1px solid #000000;
     border-radius: 4px;
     margin-left: 10px;
     font-size: 14px;
-    background: #fdfdfd;
+    background: #0f172a70;
     cursor: pointer;
 }
 
 .invoice-discount-container option {
-    background: white;
+    background: 0f172a70;
 }
 
 /* Print Media Query */
@@ -330,26 +331,39 @@
         margin: 10mm;
     }
 
+    /* Hide everything by default */
     body * {
-        visibility: hidden;
+        visibility: hidden !important;
     }
 
+    /* Show only the invoice container and its children */
     .invoice-container,
     .invoice-container * {
-        visibility: visible;
+        visibility: visible !important;
     }
 
     .invoice-container {
-        position: absolute;
+        position: fixed;
+        /* use fixed to absolutely position it for print */
         left: 0;
         top: 0;
-        box-shadow: none !important;
-        margin: 0 auto !important;
-        max-width: 100% !important;
         width: 100% !important;
+        max-width: 100% !important;
         padding: 0 !important;
+        margin: 0 !important;
+        box-shadow: none !important;
         border: none !important;
         background: white !important;
+        z-index: 9999;
+    }
+
+    /* Force white background for header/footer sections during print */
+    .invoice-header,
+    .invoice-payment-section,
+    .invoice-footer,
+    .invoice-table thead {
+        background: white !important;
+        border-color: #eee !important;
     }
 
     .invoice-controls,
@@ -364,17 +378,12 @@
         border: none !important;
         background: transparent !important;
         padding: 0;
-        color: inherit !important;
-        -webkit-appearance: none;
+        color: black !important;
     }
 
-    .invoice-container input:hover,
-    .invoice-container input:focus {
-        background: transparent !important;
-    }
-
-    * {
-        -webkit-print-color-adjust: exact !important;
-        color-adjust: exact !important;
+    /* Ensure specific colors are printed clearly */
+    .invoice-summary-value,
+    .invoice-grand-col .invoice-summary-value {
+        color: black !important;
     }
 }

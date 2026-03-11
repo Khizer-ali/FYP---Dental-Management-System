@@ -96,6 +96,7 @@ def create_patient():
         ref_number = f"{ref_number}-{str(uuid.uuid4())[:4].upper()}"
     
     phone_number = data.get('phone_number')
+    cnic = data.get('cnic')
     
     # Pakistan Phone Number Validation
     if phone_number:
@@ -104,7 +105,13 @@ def create_patient():
         if not re.match(pak_regex, phone_number):
             return jsonify({'error': 'Invalid'}), 400
 
-    patient = Patient(reference_number=ref_number, name=name, phone_number=phone_number)
+    # CNIC Validation (XXXXX-XXXXXXX-X)
+    if cnic:
+        cnic_regex = r'^\d{5}-\d{7}-\d{1}$'
+        if not re.match(cnic_regex, cnic):
+            return jsonify({'error': 'Invalid CNIC format. Use XXXXX-XXXXXXX-X'}), 400
+
+    patient = Patient(reference_number=ref_number, name=name, phone_number=phone_number, cnic=cnic)
     db.session.add(patient)
     db.session.commit()
     
@@ -420,6 +427,44 @@ def get_appointments(patient_id):
     Patient.query.get_or_404(patient_id)
     appointments = Appointment.query.filter_by(patient_id=patient_id).order_by(Appointment.appointment_datetime.asc()).all()
     return jsonify([appt.to_dict() for appt in appointments])
+
+@app.route('/api/appointments/<int:appointment_id>', methods=['PUT'])
+def update_appointment(appointment_id):
+    """Update an existing appointment"""
+    appointment = Appointment.query.get_or_404(appointment_id)
+    data = request.json
+    
+    app_dt_str = data.get('appointment_datetime')
+    alert_dt_str = data.get('alert_datetime')
+    status = data.get('status')
+    
+    try:
+        if app_dt_str:
+            appointment.appointment_datetime = datetime.fromisoformat(app_dt_str.replace('Z', '+00:00'))
+        if alert_dt_str:
+            appointment.alert_datetime = datetime.fromisoformat(alert_dt_str.replace('Z', '+00:00'))
+        if status:
+            appointment.status = status
+            
+        db.session.commit()
+        return jsonify(appointment.to_dict()), 200
+    except ValueError as e:
+        return jsonify({'error': f'Invalid datetime format: {str(e)}'}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/appointments/<int:appointment_id>', methods=['DELETE'])
+def delete_appointment(appointment_id):
+    """Delete an existing appointment"""
+    appointment = Appointment.query.get_or_404(appointment_id)
+    try:
+        db.session.delete(appointment)
+        db.session.commit()
+        return jsonify({'message': 'Appointment deleted successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/analytics/patient-trends', methods=['GET'])
 def patient_trends():

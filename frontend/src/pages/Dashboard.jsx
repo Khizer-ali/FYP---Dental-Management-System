@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import PhoneInput from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 import '../styles/dashboard.css';
 
 const API_BASE = 'http://localhost:5000/api';
@@ -72,13 +74,113 @@ function PatientTrendsChart({ data }) {
   );
 }
 
+function AppointmentCalendar({ appointments }) {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [viewMode, setViewMode] = useState('calendar');
+
+  const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+  const daysInMonth = endOfMonth.getDate();
+  const startDay = startOfMonth.getDay();
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+  const dayCounts = Array.from({ length: daysInMonth }, (_, i) => {
+    const d = i + 1;
+    const count = appointments.filter(a => {
+      const ad = new Date(a.appointment_datetime);
+      return ad.getDate() === d && ad.getMonth() === currentDate.getMonth() && ad.getFullYear() === currentDate.getFullYear();
+    }).length;
+    return { day: d, count };
+  });
+  const maxCount = Math.max(...dayCounts.map(d => d.count), 1);
+
+  const days = [];
+  for (let i = 0; i < startDay; i++) days.push(<div key={`pad-${i}`} className="calendar-day padding"></div>);
+  for (let d = 1; d <= daysInMonth; d++) {
+    const isToday = d === new Date().getDate() && currentDate.getMonth() === new Date().getMonth() && currentDate.getFullYear() === new Date().getFullYear();
+    const hasAppt = appointments.some(a => {
+      const ad = new Date(a.appointment_datetime);
+      return ad.getDate() === d && ad.getMonth() === currentDate.getMonth() && ad.getFullYear() === currentDate.getFullYear();
+    });
+    days.push(
+      <div key={d} className={`calendar-day ${isToday ? 'today' : ''} ${hasAppt ? 'has-appt' : ''}`}>
+        {d}
+        {hasAppt && <div className="appt-dot"></div>}
+      </div>
+    );
+  }
+
+  const barW = 7;
+  const chartH = 110;
+  const gapW = 2;
+  const totalW = daysInMonth * (barW + gapW);
+
+  return (
+    <div className="calendar-container">
+      <div className="calendar-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span>{monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button
+            title={viewMode === 'calendar' ? 'Switch to Chart' : 'Switch to Calendar'}
+            onClick={() => setViewMode(v => v === 'calendar' ? 'graph' : 'calendar')}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '15px', padding: '2px 4px' }}
+          >
+            {viewMode === 'calendar' ? '📊' : '📅'}
+          </button>
+          <div className="calendar-nav">
+            <button onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() - 1)))}>‹</button>
+            <button onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() + 1)))}>›</button>
+          </div>
+        </div>
+      </div>
+
+      {viewMode === 'calendar' ? (
+        <>
+          <div className="calendar-weekdays">
+            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => <div key={i} className="weekday">{d}</div>)}
+          </div>
+          <div className="calendar-grid">{days}</div>
+        </>
+      ) : (
+        <div style={{ marginTop: '10px', overflowX: 'auto' }}>
+          <svg width={totalW} height={chartH + 24} style={{ display: 'block' }}>
+            {dayCounts.map(({ day, count }, i) => {
+              const barH = count === 0 ? 2 : Math.max(4, (count / maxCount) * chartH);
+              const x = i * (barW + gapW);
+              const y = chartH - barH;
+              const isToday = day === new Date().getDate() && currentDate.getMonth() === new Date().getMonth() && currentDate.getFullYear() === new Date().getFullYear();
+              return (
+                <g key={day}>
+                  <rect x={x} y={y} width={barW} height={barH} rx="2" ry="2"
+                    fill={count > 0 ? (isToday ? '#22c55e' : '#3b82f6') : 'rgba(255,255,255,0.07)'} />
+                  {(day % 5 === 0 || day === 1) && (
+                    <text x={x + barW / 2} y={chartH + 14} textAnchor="middle" fill="#64748b" fontSize="9">{day}</text>
+                  )}
+                  {count > 0 && (
+                    <text x={x + barW / 2} y={y - 3} textAnchor="middle" fill="#94a3b8" fontSize="8">{count}</text>
+                  )}
+                </g>
+              );
+            })}
+          </svg>
+          <div style={{ display: 'flex', gap: '14px', marginTop: '6px', fontSize: '10px', color: '#64748b' }}>
+            <span>🟦 Appointments</span>
+            <span style={{ color: '#22c55e' }}>🟩 Today</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [totalPatients, setTotalPatients] = useState(0);
   const [trendData, setTrendData] = useState([]);
   const [trendRange, setTrendRange] = useState(30);
+  const [appointments, setAppointments] = useState([]);
   const [message, setMessage] = useState({ text: '', type: '' });
-  const [formData, setFormData] = useState({ name: '', reference_number: '', phone_number: '' });
+  const [formData, setFormData] = useState({ name: '', cnic: '', phone_number: '' });
   const navigate = useNavigate();
 
   const [time, setTime] = useState(new Date());
@@ -111,8 +213,21 @@ function Dashboard() {
     }
   }, [trendRange]);
 
+  const fetchAllAppointments = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/appointments`);
+      if (res.ok) {
+        const data = await res.json();
+        setAppointments(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch appointments', err);
+    }
+  }, []);
+
   useEffect(() => { fetchPatients(); }, [fetchPatients, message]);
   useEffect(() => { fetchTrends(); }, [fetchTrends]);
+  useEffect(() => { fetchAllAppointments(); }, [fetchAllAppointments]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -133,7 +248,7 @@ function Dashboard() {
       const result = await response.json();
       if (response.ok) {
         showMessage('Patient created successfully!', 'success');
-        setFormData({ name: '', reference_number: '', phone_number: '' });
+        setFormData({ name: '', cnic: '', phone_number: '' });
       } else {
         showMessage(result.error || 'Error creating patient', 'error');
       }
@@ -147,6 +262,16 @@ function Dashboard() {
   const showMessage = (text, type) => {
     setMessage({ text, type });
     setTimeout(() => setMessage({ text: '', type: '' }), 5000);
+  };
+
+  const handleCnicChange = (e) => {
+    // Strip everything except digits
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 13);
+    // Auto-insert dashes: XXXXX-XXXXXXX-X
+    let formatted = digits;
+    if (digits.length > 5) formatted = digits.slice(0, 5) + '-' + digits.slice(5);
+    if (digits.length > 12) formatted = formatted.slice(0, 13) + '-' + formatted.slice(13);
+    setFormData({ ...formData, cnic: formatted });
   };
 
   const totalRegistrationsInRange = trendData.reduce((sum, d) => sum + d.count, 0);
@@ -209,21 +334,24 @@ function Dashboard() {
                 />
               </div>
               <div className="dark-form-group">
-                <label>Reference Number (Optional)</label>
+                <label>CNIC (Optional)</label>
                 <input
                   type="text"
-                  placeholder="Auto-generated if not provided"
-                  value={formData.reference_number}
-                  onChange={(e) => setFormData({ ...formData, reference_number: e.target.value })}
+                  placeholder="XXXXX-XXXXXXX-X"
+                  value={formData.cnic}
+                  onChange={handleCnicChange}
+                  maxLength={15}
                 />
               </div>
               <div className="dark-form-group">
                 <label>Phone Number (Optional)</label>
-                <input
-                  type="tel"
-                  placeholder="e.g. +1234567890"
+                <PhoneInput
+                  international
+                  defaultCountry="PK"
                   value={formData.phone_number}
-                  onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                  onChange={(val) => setFormData({ ...formData, phone_number: val || '' })}
+                  className="dark-phone-input"
+                  maxLength={15}
                 />
               </div>
               <button type="submit" className="dark-btn" disabled={loading}>
@@ -236,7 +364,7 @@ function Dashboard() {
           </div>
 
           {/* Column 3: Quick Actions */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div className="stats-column">
             <div className="dash-card">
               <div className="card-title">Quick-Action</div>
               <div style={{ marginTop: '10px' }}>
@@ -264,40 +392,50 @@ function Dashboard() {
               </div>
             </div>
 
-            {/* Quick Buttons */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <button className="action-btn primary" onClick={() => navigate('/database')}>
+            <div className="dash-card" style={{ justifyContent: 'center' }}>
+              <button className="action-btn primary" onClick={() => navigate('/database')} style={{ margin: 0 }}>
                 🗄️ View Patient Database
               </button>
             </div>
           </div>
 
-          {/* Full-width Analytics Row */}
+          {/* Analytics & Calendar Row */}
           <div className="dash-card analytics-card" style={{ gridColumn: '1 / -1' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-              <div className="card-title" style={{ marginBottom: 0 }}>
-                📈 Patient Registration Trends
-                <span style={{ marginLeft: '12px', fontSize: '12px', color: '#64748b', fontWeight: '400' }}>— Patient Registration Trend</span>
-              </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                {[7, 14, 30].map(r => (
-                  <button
-                    key={r}
-                    onClick={() => setTrendRange(r)}
-                    style={{
-                      padding: '4px 12px', borderRadius: '6px', border: 'none', cursor: 'pointer',
-                      background: trendRange === r ? '#3b82f6' : 'rgba(255,255,255,0.08)',
-                      color: trendRange === r ? 'white' : '#94a3b8',
-                      fontSize: '12px', fontWeight: '600', transition: 'all 0.2s'
-                    }}
-                  >
-                    Last {r} days
-                  </button>
-                ))}
+            <div className="analytics-header">
+              <div className="analytics-title-group">
+                <div className="card-title" style={{ marginBottom: 0 }}>
+                  📈 Patient Registration Trends
+                </div>
+                <div className="trend-selectors">
+                  {[7, 14, 30].map(r => (
+                    <button
+                      key={r}
+                      onClick={() => setTrendRange(r)}
+                      className={`range-btn ${trendRange === r ? 'active' : ''}`}
+                    >
+                      Last {r} days
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-            <div style={{ height: '160px', width: '100%' }}>
-              <PatientTrendsChart data={trendData} />
+
+            <div className="analytics-content-split">
+              <div className="chart-section">
+                <div className="chart-info">
+                  <span className="info-label">Last {trendRange} days</span>
+                </div>
+                <div className="chart-wrapper">
+                  <PatientTrendsChart data={trendData} />
+                </div>
+              </div>
+
+              <div className="calendar-section">
+                <div className="section-header">
+                  <div className="card-title">📅 Appointment Calendar</div>
+                </div>
+                <AppointmentCalendar appointments={appointments} />
+              </div>
             </div>
           </div>
 

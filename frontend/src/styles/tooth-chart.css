@@ -303,7 +303,7 @@
 }
 
 .legend-color.healthy {
-    background-color: #22c55e;
+    background-color: #edf3ef;
 }
 
 .legend-color.decay {
@@ -552,39 +552,71 @@
 
 /* ---- Print Styles ---- */
 @media print {
+    @page {
+        size: A4;
+        margin: 10mm;
+    }
+
+    /* Force global white background */
+    body,
+    #root,
+    .page-wrapper,
+    .container,
+    .content {
+        background: white !important;
+        color: black !important;
+    }
 
     /* Hide the rest of the application, show only the tooth chart */
     body * {
-        visibility: hidden;
+        visibility: hidden !important;
     }
 
     .tooth-chart-container,
     .tooth-chart-container * {
-        visibility: visible;
+        visibility: visible !important;
     }
 
     .tooth-chart-container {
-        position: absolute;
+        position: fixed;
         left: 0;
         top: 0;
-        width: 100%;
-        margin: 0;
-        padding: 0;
-        box-shadow: none;
-        border-radius: 0;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+        background: white !important;
+        display: block !important;
     }
 
     /* Hide tabs, sidebars, and interactive controls when printing */
     .chart-header-tabs,
     .chart-sidebar,
-    .condition-actions {
+    .condition-actions,
+    .chart-tab-controls {
         display: none !important;
     }
 
     /* Make chart area take full width */
     .chart-main-area {
-        flex: none;
-        width: 100%;
-        padding: 10px;
+        flex: none !important;
+        width: 100% !important;
+        padding: 0 !important;
+        background: white !important;
+    }
+
+    .teeth-grid {
+        gap: 20px !important;
+    }
+
+    /* Ensure tooth SVG paths are visible */
+    .tooth-path {
+        stroke: #333 !important;
+        filter: none !important;
+    }
+
+    .arch-label {
+        color: #333 !important;
     }
 }

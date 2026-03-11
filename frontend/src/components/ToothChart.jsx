@@ -146,6 +146,7 @@ const ToothChart = ({ patientId, initialTeethData = {} }) => {
     const [selectedTooth, setSelectedTooth] = useState('19'); // Default selection
     const [loading, setLoading] = useState(false);
     const [activeSubTab, setActiveSubTab] = useState('charting');
+    const [message, setMessage] = useState(null);
 
     // Notes state
     const [notes, setNotes] = useState(initialTeethData['general_notes'] || '');
@@ -153,6 +154,11 @@ const ToothChart = ({ patientId, initialTeethData = {} }) => {
     // X-Ray State
     const [xRays, setXRays] = useState([]);
     const [selectedXRay, setSelectedXRay] = useState(null);
+
+    useEffect(() => {
+        setTeethData(initialTeethData);
+        setNotes(initialTeethData['general_notes'] || '');
+    }, [initialTeethData]);
 
     useEffect(() => {
         // Fetch X-Rays when the component mounts or patientId changes
@@ -206,7 +212,8 @@ const ToothChart = ({ patientId, initialTeethData = {} }) => {
         } catch (error) {
             console.error('Error updating tooth condition:', error);
             setTeethData(previousData); // Revert
-            alert('Failed to save tooth condition. Please try again.');
+            setMessage({ text: 'Failed to save tooth condition.', type: 'error' });
+            setTimeout(() => setMessage(null), 3000);
         } finally {
             setLoading(false);
         }
@@ -226,13 +233,16 @@ const ToothChart = ({ patientId, initialTeethData = {} }) => {
             if (response.ok) {
                 // Update local state to reflect saved notes
                 setTeethData(prev => ({ ...prev, 'general_notes': notes }));
-                alert('Notes saved successfully!');
+                setMessage({ text: 'Notes saved successfully!', type: 'success' });
+                setTimeout(() => setMessage(null), 3000);
             } else {
-                alert('Failed to save notes.');
+                setMessage({ text: 'Failed to save notes.', type: 'error' });
+                setTimeout(() => setMessage(null), 3000);
             }
         } catch (err) {
             console.error("Failed to save notes", err);
-            alert('Failed to save notes.');
+            setMessage({ text: 'Failed to save notes.', type: 'error' });
+            setTimeout(() => setMessage(null), 3000);
         } finally {
             setLoading(false);
         }
@@ -306,6 +316,24 @@ const ToothChart = ({ patientId, initialTeethData = {} }) => {
 
     return (
         <div className="tooth-chart-container">
+            {message && (
+                <div style={{
+                    position: 'absolute',
+                    top: '10px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    backgroundColor: message.type === 'success' ? '#dcfce7' : '#fee2e2',
+                    color: message.type === 'success' ? '#166534' : '#991b1b',
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+                    zIndex: 1000,
+                    fontSize: '14px',
+                    fontWeight: '600'
+                }}>
+                    {message.type === 'success' ? '✓' : '⚠'} {message.text}
+                </div>
+            )}
             {/* Main Chart Area */}
             <div className="chart-main-area">
                 <div className="chart-header-tabs">
@@ -321,19 +349,10 @@ const ToothChart = ({ patientId, initialTeethData = {} }) => {
                     >
                         📄 Notes
                     </button>
-                    <button className="chart-tab">📊 Perio</button>
-                    <button
-                        className={`chart-tab ${activeSubTab === 'xrays' ? 'active' : ''}`}
-                        onClick={() => setActiveSubTab('xrays')}
-                    >
-                        🖼️ X-Rays
-                    </button>
 
                     <div className="chart-tab-controls">
                         <input type="date" className="chart-date-picker" defaultValue={new Date().toISOString().slice(0, 10)} />
-                        <button className="chart-icon-btn">👁️</button>
                         <button className="chart-icon-btn" onClick={handlePrint} title="Print Chart">🖨️</button>
-                        <button className="chart-icon-btn">⚙️</button>
                     </div>
                 </div>
 
@@ -422,7 +441,7 @@ const ToothChart = ({ patientId, initialTeethData = {} }) => {
                                 onClick={() => handleConditionUpdate('healthy')}
                                 disabled={loading}
                             >
-                                <div className="color-indicator" style={{ backgroundColor: '#22c55e' }}></div> Set Healthy
+                                <div className="color-indicator" style={{ backgroundColor: '#edf3ef', border: '1px solid #cbd5e1' }}></div> Set Healthy
                             </button>
                             <button
                                 className={`condition-btn ${selectedCondition === 'decay' ? 'active' : ''}`}

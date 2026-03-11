@@ -6,11 +6,16 @@ const API_BASE = 'http://localhost:5000/api';
 
 function DatabasePage() {
     const [patients, setPatients] = useState([]);
+    const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState({ text: '', type: '' });
     const navigate = useNavigate();
 
-    useEffect(() => { loadPatients(); }, []);
+
+    const showMessage = (text, type) => {
+        setMessage({ text, type });
+        setTimeout(() => setMessage({ text: '', type: '' }), 5000);
+    };
 
     const loadPatients = async () => {
         try {
@@ -23,11 +28,6 @@ function DatabasePage() {
             setLoading(false);
             showMessage('Failed to load patient database.', 'error');
         }
-    };
-
-    const showMessage = (text, type) => {
-        setMessage({ text, type });
-        setTimeout(() => setMessage({ text: '', type: '' }), 5000);
     };
 
     const viewPatient = (patientId) => navigate(`/patient/${patientId}`);
@@ -45,10 +45,17 @@ function DatabasePage() {
                 const err = await response.json();
                 showMessage(`Failed to delete: ${err.error}`, 'error');
             }
-        } catch (err) {
+        } catch {
             showMessage('Network error during deletion.', 'error');
         }
     };
+
+    useEffect(() => { loadPatients(); }, []);
+
+    const filteredPatients = patients.filter(p =>
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (p.cnic && p.cnic.includes(searchQuery))
+    );
 
     return (
         <div style={{ minHeight: '100vh', background: '#0f172a', padding: '24px' }}>
@@ -64,16 +71,35 @@ function DatabasePage() {
                         <h1 style={{ margin: 0, color: 'white', fontSize: '1.6em' }}>🗄️ Patient Database</h1>
                         <p style={{ margin: '5px 0 0', color: '#94a3b8', fontSize: '14px' }}>Manage and view all registered patients</p>
                     </div>
-                    <button
-                        onClick={() => navigate('/')}
-                        style={{
-                            background: 'rgba(59,130,246,0.15)', color: 'white',
-                            border: '1px solid rgba(59,130,246,0.4)', borderRadius: '8px',
-                            padding: '10px 18px', cursor: 'pointer', fontWeight: '600', fontSize: '14px'
-                        }}
-                    >
-                        ← Back to Dashboard
-                    </button>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <div style={{ position: 'relative' }}>
+                            <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>
+                                🔍
+                            </span>
+                            <input
+                                type="text"
+                                placeholder="Search by name or CNIC..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                style={{
+                                    background: 'rgba(15, 23, 42, 0.7)', color: 'white',
+                                    border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px',
+                                    padding: '8px 12px 8px 34px', fontSize: '14px', outline: 'none',
+                                    width: '250px'
+                                }}
+                            />
+                        </div>
+                        <button
+                            onClick={() => navigate('/')}
+                            style={{
+                                background: 'rgba(59,130,246,0.15)', color: 'white',
+                                border: '1px solid rgba(59,130,246,0.4)', borderRadius: '8px',
+                                padding: '10px 18px', cursor: 'pointer', fontWeight: '600', fontSize: '14px'
+                            }}
+                        >
+                            ← Back to Dashboard
+                        </button>
+                    </div>
                 </div>
 
                 {message.text && (
@@ -88,11 +114,11 @@ function DatabasePage() {
                         <p style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px', color: '#94a3b8' }}>
                             Loading patients…
                         </p>
-                    ) : patients.length === 0 ? (
+                    ) : filteredPatients.length === 0 ? (
                         <p style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px', color: '#94a3b8' }}>
-                            No patients found. Create a new patient on the dashboard.
+                            No patients found matching your search.
                         </p>
-                    ) : patients.map(patient => (
+                    ) : filteredPatients.map(patient => (
                         <div
                             key={patient.id}
                             onClick={() => viewPatient(patient.id)}
@@ -113,6 +139,11 @@ function DatabasePage() {
                             <p style={{ color: '#94a3b8', fontSize: '14px', margin: '4px 0' }}>
                                 <strong style={{ color: '#cbd5e1' }}>Created:</strong> {new Date(patient.created_at).toLocaleDateString()}
                             </p>
+                            {patient.cnic && (
+                                <p style={{ color: '#94a3b8', fontSize: '14px', margin: '4px 0' }}>
+                                    <strong style={{ color: '#cbd5e1' }}>CNIC:</strong> {patient.cnic}
+                                </p>
+                            )}
                             {patient.phone_number && (
                                 <p style={{ color: '#94a3b8', fontSize: '14px', margin: '4px 0' }}>
                                     <strong style={{ color: '#cbd5e1' }}>Phone:</strong> {patient.phone_number}

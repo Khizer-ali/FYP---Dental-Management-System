@@ -281,3 +281,24 @@ label {
 ::-webkit-scrollbar-thumb:hover {
   background: #475569;
 }
+
+/* ---------- Print Reset ---------- */
+@media print {
+
+  body,
+  #root,
+  .page-wrapper,
+  .container,
+  .content {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Ensure background colors aren't forced if they are dark */
+  * {
+    -webkit-print-color-adjust: economy !important;
+    print-color-adjust: economy !important;
+  }
+}

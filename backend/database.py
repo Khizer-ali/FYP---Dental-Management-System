@@ -10,6 +10,7 @@ class Patient(db.Model):
     reference_number = db.Column(db.String(50), unique=True, nullable=False, index=True)
     name = db.Column(db.String(200), nullable=False)
     phone_number = db.Column(db.String(50), nullable=True)
+    cnic = db.Column(db.String(20), nullable=True)
     teeth_drawing = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -27,6 +28,7 @@ class Patient(db.Model):
             'reference_number': self.reference_number,
             'name': self.name,
             'phone_number': self.phone_number,
+            'cnic': self.cnic,
             'teeth_drawing': self.teeth_drawing,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
@@ -134,8 +136,8 @@ class DentalAssessment(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=False)
-    tooth_id = db.Column(db.String(5), nullable=False)
-    condition = db.Column(db.String(20), nullable=False)
+    tooth_id = db.Column(db.String(20), nullable=False)
+    condition = db.Column(db.String(2000), nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     def to_dict(self):

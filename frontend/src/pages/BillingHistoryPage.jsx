@@ -42,7 +42,7 @@ function BillingHistoryPage() {
                         <h1 style={{ margin: 0, color: 'white', fontSize: '1.6em' }}>💳 Billing Overview</h1>
                         <p style={{ margin: '5px 0 0', color: '#94a3b8', fontSize: '14px' }}>
                             Full invoice history &nbsp;·&nbsp;
-                            <span style={{ color: '#22c55e', fontWeight: '600' }}>${totalRevenue.toFixed(2)} total revenue</span>
+                            <span style={{ color: '#22c55e', fontWeight: '600' }}>PKR {totalRevenue.toFixed(2)} total revenue</span>
                         </p>
                     </div>
                     <button onClick={() => navigate('/')} style={backBtnStyle}>← Back to Dashboard</button>
@@ -57,8 +57,8 @@ function BillingHistoryPage() {
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ background: 'rgba(255,255,255,0.04)' }}>
-                                    {['Date', 'Invoice #', 'Patient', 'Staff', 'Amount', 'Method'].map(h => (
-                                        <th key={h} style={{ padding: '14px 16px', textAlign: h === 'Amount' ? 'right' : 'left', color: '#64748b', fontSize: '13px', fontWeight: '600', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>{h}</th>
+                                    {['Date', 'Invoice #', 'Patient', 'Staff', 'Discount', 'Amount', 'Method'].map(h => (
+                                        <th key={h} style={{ padding: '14px 16px', textAlign: (h === 'Amount' || h === 'Discount') ? 'right' : 'left', color: '#64748b', fontSize: '13px', fontWeight: '600', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>{h}</th>
                                     ))}
                                 </tr>
                             </thead>
@@ -69,8 +69,11 @@ function BillingHistoryPage() {
                                         <td style={{ padding: '14px 16px', color: '#94a3b8', fontSize: '13px', fontFamily: 'monospace' }}>{bill.invoice_number}</td>
                                         <td style={{ padding: '14px 16px', color: '#3b82f6', fontWeight: '600', fontSize: '14px' }}>{bill.patient_name}</td>
                                         <td style={{ padding: '14px 16px', color: '#94a3b8', fontSize: '13px' }}>{bill.staff_name || '—'}</td>
+                                        <td style={{ padding: '14px 16px', color: '#f87171', fontSize: '13px', textAlign: 'right' }}>
+                                            {bill.discount_amount > 0 ? `PKR ${bill.discount_amount.toFixed(2)}` : '—'}
+                                        </td>
                                         <td style={{ padding: '14px 16px', color: '#22c55e', fontWeight: '700', fontSize: '15px', textAlign: 'right' }}>
-                                            ${bill.grand_total?.toFixed(2)}
+                                            PKR {bill.grand_total?.toFixed(2)}
                                         </td>
                                         <td style={{ padding: '14px 16px', color: '#94a3b8', fontSize: '13px' }}>{bill.payment_method}</td>
                                     </tr>
@@ -78,8 +81,8 @@ function BillingHistoryPage() {
                             </tbody>
                             <tfoot>
                                 <tr style={{ background: 'rgba(34,197,94,0.05)', borderTop: '1px solid rgba(34,197,94,0.2)' }}>
-                                    <td colSpan={4} style={{ padding: '14px 16px', color: '#94a3b8', fontWeight: '600', fontSize: '14px' }}>Total Revenue ({bills.length} invoices)</td>
-                                    <td style={{ padding: '14px 16px', color: '#22c55e', fontWeight: '700', fontSize: '16px', textAlign: 'right' }}>${totalRevenue.toFixed(2)}</td>
+                                    <td colSpan={5} style={{ padding: '14px 16px', color: '#94a3b8', fontWeight: '600', fontSize: '14px' }}>Total Revenue ({bills.length} invoices)</td>
+                                    <td style={{ padding: '14px 16px', color: '#22c55e', fontWeight: '700', fontSize: '16px', textAlign: 'right' }}>PKR {totalRevenue.toFixed(2)}</td>
                                     <td></td>
                                 </tr>
                             </tfoot>

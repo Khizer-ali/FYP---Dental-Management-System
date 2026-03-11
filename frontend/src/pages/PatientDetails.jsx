@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import '../styles/patient-details.css';
 import '../styles/billing.css';
@@ -14,13 +14,6 @@ function PatientDetails() {
   const [patientData, setPatientData] = useState(null);
   const [messages, setMessages] = useState({});
   const [loading, setLoading] = useState(true); // Added loading state
-
-  // Canvas Drawing Refs and States
-  const canvasRef = useRef(null);
-  const [isDrawingMode, setIsDrawingMode] = useState(false);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [brushColor, setBrushColor] = useState('#ff0000'); // Default Red for cavity
-  const [brushSize, setBrushSize] = useState(3);
 
   // Data states
   const [documents, setDocuments] = useState([]);
@@ -42,6 +35,7 @@ function PatientDetails() {
     alert_datetime: ''
   });
   const [triggerSmsStatus, setTriggerSmsStatus] = useState('');
+  const [editingAppointmentId, setEditingAppointmentId] = useState(null);
 
   // Billing States
   const [bills, setBills] = useState([]);
@@ -62,8 +56,6 @@ function PatientDetails() {
 
   // Form states
   const [documentForm, setDocumentForm] = useState({ file: null, document_type: 'Medical Report' });
-  const [vitalsForm, setVitalsForm] = useState({});
-  const [familyForm, setFamilyForm] = useState({});
   const [imageForm, setImageForm] = useState({ file: null, image_type: 'Medical Image', description: '' });
 
   useEffect(() => {
@@ -96,7 +88,7 @@ function PatientDetails() {
           if (tData.teeth_data !== undefined) {
             setTeethData(tData.teeth_data);
             if (tData.teeth_drawing) {
-              loadCanvasFromBase64(tData.teeth_drawing);
+              // Legacy drawing data support
             }
           } else {
             setTeethData(tData);
@@ -119,15 +111,11 @@ function PatientDetails() {
     }
   }, [activeTab, patientId]);
 
-  const loadPatientData = async () => {
-    try {
-      const response = await fetch(`${API_BASE}/patients/${patientId}`);
-      const data = await response.json();
-      setPatientData(data);
-    } catch (error) {
-      console.error('Error loading patient:', error);
+  useEffect(() => {
+    if (activeTab) {
+      loadTabData(activeTab);
     }
-  };
+  }, [activeTab, patientId]);
 
   const loadTabData = async (tabName) => {
     switch (tabName) {
@@ -315,70 +303,18 @@ function PatientDetails() {
     }
   };
 
-  // Dental
-  const handleToothClick = async (toothId, event) => {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-    console.log('Tooth clicked:', toothId); // Debug log
-
-    const current = teethData[toothId] || '';
-    const input = prompt(`Tooth ${toothId.toUpperCase()}\nEnter: root, cavity, or both (leave blank to clear)`, current);
-    if (input === null) return;
-
-    const condition = input.trim().toLowerCase();
-    const allowed = ['', 'root', 'cavity', 'both'];
-    if (!allowed.includes(condition)) {
-      showMessage('dentalMessage', 'Invalid condition. Use root, cavity, or both.', 'error');
-      return;
-    }
-
-    // Save previous state for potential revert
-    const previousData = { ...teethData };
-
-    // Optimistically update UI
-    const updatedData = { ...teethData };
-    if (condition) {
-      updatedData[toothId] = condition;
-    } else {
-      delete updatedData[toothId];
-    }
-    setTeethData(updatedData);
-
-    try {
-      const response = await fetch(`${API_BASE}/patients/${patientId}/teeth`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          tooth_id: toothId,
-          condition: condition
-        })
-      });
-
-      const result = await response.json();
-      if (!response.ok) {
-        // Revert on error
-        setTeethData(previousData);
-        showMessage('dentalMessage', result.error || 'Unable to save tooth data', 'error');
-      } else {
-        const actionText = condition ? 'saved' : 'cleared';
-        showMessage('dentalMessage', `Tooth ${toothId.toUpperCase()} ${actionText}.`, 'success');
-      }
-    } catch (error) {
-      // Revert on error
-      setTeethData(previousData);
-      showMessage('dentalMessage', 'Network error: ' + error.message, 'error');
-    }
-  };
+  // Dental (Moved mostly to ToothChart)
 
   const loadDental = async () => {
     try {
       const response = await fetch(`${API_BASE}/patients/${patientId}/teeth`);
       const data = await response.json();
-      setTeethData(data || {});
+
+      if (data.teeth_data !== undefined) {
+        setTeethData(data.teeth_data);
+      } else {
+        setTeethData(data || {});
+      }
     } catch (error) {
       console.error('Error loading dental data:', error);
       showMessage('dentalMessage', 'Error loading dental data: ' + error.message, 'error');
@@ -501,77 +437,6 @@ function PatientDetails() {
     }
   };
 
-  // ---------------- CANVAS DRAWING LOGIC ----------------
-  const startDrawing = (e) => {
-    if (!isDrawingMode || !canvasRef.current) return;
-    const canvas = canvasRef.current;
-
-    // We must scale coordinates correctly if the CSS size doesn't match the HTML canvas size exactly.
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
-
-    const ctx = canvas.getContext('2d');
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    setIsDrawing(true);
-  };
-
-  const draw = (e) => {
-    if (!isDrawing || !isDrawingMode || !canvasRef.current) return;
-    const canvas = canvasRef.current;
-
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
-
-    const ctx = canvas.getContext('2d');
-    ctx.lineTo(x, y);
-    ctx.strokeStyle = brushColor;
-    ctx.lineWidth = brushSize;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.stroke();
-  };
-
-  const endDrawing = () => {
-    if (!isDrawingMode || !canvasRef.current) return;
-    const ctx = canvasRef.current.getContext('2d');
-    ctx.closePath();
-    setIsDrawing(false);
-  };
-
-  const clearCanvas = () => {
-    if (!canvasRef.current) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-  };
-
-  const saveCanvasDrawing = async () => {
-    if (!canvasRef.current) return;
-    const base64Str = canvasRef.current.toDataURL('image/png');
-
-    try {
-      await fetch(`${API_BASE}/patients/${patientId}/teeth`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          teeth_drawing: base64Str
-        })
-      });
-      showMessage('dentalMessage', 'Drawing overlay saved.', 'success');
-    } catch (err) {
-      console.error('Error saving drawing:', err);
-      showMessage('dentalMessage', 'Drawing overlay failed to save.', 'error');
-    }
-  };
   // ----------------------------------------------------
 
   // Appointments handlers
@@ -594,8 +459,12 @@ function PatientDetails() {
     }
 
     try {
-      const response = await fetch(`${API_BASE}/patients/${patientId}/appointments`, {
-        method: 'POST',
+      const url = editingAppointmentId
+        ? `${API_BASE}/appointments/${editingAppointmentId}`
+        : `${API_BASE}/patients/${patientId}/appointments`;
+
+      const response = await fetch(url, {
+        method: editingAppointmentId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           appointment_datetime: new Date(newAppointment.appointment_datetime).toISOString(),
@@ -605,9 +474,15 @@ function PatientDetails() {
 
       if (response.ok) {
         const appointment = await response.json();
-        setAppointments([...appointments, appointment]);
+        if (editingAppointmentId) {
+          setAppointments(appointments.map(a => a.id === editingAppointmentId ? appointment : a));
+          setEditingAppointmentId(null);
+          showMessage('appointmentsMessage', 'Appointment updated successfully!', 'success');
+        } else {
+          setAppointments([...appointments, appointment]);
+          showMessage('appointmentsMessage', 'Appointment scheduled successfully!', 'success');
+        }
         setNewAppointment({ appointment_datetime: '', alert_datetime: '' });
-        showMessage('appointmentsMessage', 'Appointment scheduled successfully!', 'success');
       } else {
         const err = await response.json();
         showMessage('appointmentsMessage', err.error || 'Failed to schedule appointment', 'error');
@@ -615,6 +490,50 @@ function PatientDetails() {
     } catch (error) {
       console.error('Error:', error);
       showMessage('appointmentsMessage', 'Error scheduling appointment', 'error');
+    }
+  };
+
+  const handleEditAppointment = (appt) => {
+    // Format ISO string to datetime-local format (YYYY-MM-DDTHH:MM)
+    const formatForInput = (isoStr) => {
+      const date = new Date(isoStr);
+      const tzOffset = date.getTimezoneOffset() * 60000;
+      const localISODate = new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
+      return localISODate;
+    };
+
+    setNewAppointment({
+      appointment_datetime: formatForInput(appt.appointment_datetime),
+      alert_datetime: formatForInput(appt.alert_datetime)
+    });
+    setEditingAppointmentId(appt.id);
+    // Scroll to form
+    const formEl = document.querySelector('.vitals-form');
+    if (formEl) formEl.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingAppointmentId(null);
+    setNewAppointment({ appointment_datetime: '', alert_datetime: '' });
+  };
+
+  const handleDeleteAppointment = async (apptId) => {
+    if (!window.confirm('Are you sure you want to delete this appointment?')) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/appointments/${apptId}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        showMessage('appointmentsMessage', 'Appointment deleted successfully', 'success');
+        loadAppointments();
+      } else {
+        const err = await response.json();
+        showMessage('appointmentsMessage', err.error || 'Failed to delete appointment', 'error');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      showMessage('appointmentsMessage', 'Error deleting appointment', 'error');
     }
   };
 
@@ -638,18 +557,6 @@ function PatientDetails() {
     setTimeout(() => setTriggerSmsStatus(''), 5000);
   };
 
-
-  const getToothClassName = (toothId) => {
-    const condition = teethData[toothId];
-    if (!condition) return 'tooth';
-    // Map condition values to CSS class names
-    const classMap = {
-      'root': 'root-canal',
-      'cavity': 'cavity',
-      'both': 'both'
-    };
-    return `tooth ${classMap[condition] || condition}`;
-  };
 
   useEffect(() => {
     if (activeTab === 'dental') {
@@ -714,7 +621,7 @@ function PatientDetails() {
         }, 100);
         return updated;
       });
-    } catch (error) {
+    } catch {
       setChatMessages(prev => {
         const updated = [...prev, { type: 'bot', text: 'Sorry, I encountered an error. Please try again.' }];
         setTimeout(() => {
@@ -755,10 +662,10 @@ function PatientDetails() {
             👨‍👩‍👧‍👦 Family History
           </button>
           <button className={`tab ${activeTab === 'images' ? 'active' : ''}`} onClick={() => setActiveTab('images')}>
-            🖼️ Images
+            🖼️ RI
           </button>
           <button className={`tab ${activeTab === 'dental' ? 'active' : ''}`} onClick={() => setActiveTab('dental')}>
-            🦷 Teeth X-Ray
+            🦷 Tooth Chart
           </button>
           <button className={`tab ${activeTab === 'billing' ? 'active' : ''}`} onClick={() => setActiveTab('billing')}>
             💳 Billing
@@ -1125,7 +1032,7 @@ function PatientDetails() {
                   </tr>
                 </thead>
                 <tbody>
-                  {calculateBillTotals().items.map((service, index) => (
+                  {calculateBillTotals().items.map((service) => (
                     <tr key={service.id}>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -1201,11 +1108,11 @@ function PatientDetails() {
                     <div className="invoice-summary-section">
                       <div className="invoice-summary-col">
                         <span className="invoice-summary-title">Sub - Total amount discount</span>
-                        <span className="invoice-summary-value">Rs<span style={{ marginLeft: '2px' }}>{totals.subtotalAfterDiscount.toFixed(2)}</span></span>
+                        <span className="invoice-summary-value">PKR<span style={{ marginLeft: '2px' }}>{totals.subtotalAfterDiscount.toFixed(2)}</span></span>
                       </div>
                       <div className="invoice-summary-col">
                         <span className="invoice-summary-title">Outstanding amount</span>
-                        <span className="invoice-summary-value">Rs
+                        <span className="invoice-summary-value">PKR
                           <input
                             type="number"
                             value={billDetails.outstanding_amount}
@@ -1217,7 +1124,7 @@ function PatientDetails() {
                       </div>
                       <div className="invoice-summary-col invoice-grand-col">
                         <span className="invoice-summary-title">Grand total</span>
-                        <span className="invoice-summary-value">Rs<span style={{ marginLeft: '2px' }}>{totals.grandTotal.toFixed(2)}</span></span>
+                        <span className="invoice-summary-value">PKR<span style={{ marginLeft: '2px' }}>{totals.grandTotal.toFixed(2)}</span></span>
                       </div>
                     </div>
 
@@ -1231,14 +1138,17 @@ function PatientDetails() {
                           style={{ width: '220px' }}
                         />
                         <span className="invoice-separator">|</span>
-                        <input
-                          type="text"
+                        <select
                           value={billDetails.payment_method}
                           onChange={(e) => setBillDetails({ ...billDetails, payment_method: e.target.value })}
-                          style={{ width: '200px' }}
-                        />
+                          style={{ width: '200px', cursor: 'pointer', outline: 'none', border: 'none', appearance: 'none', background: 'transparent', color: 'black' }}
+                        >
+                          <option value="CASH" style={{ color: 'black' }}>CASH</option>
+                          <option value="ONLINE BANK TRANSFER" style={{ color: 'black' }}>ONLINE BANK TRANSFER</option>
+                          <option value="CARD PAYMENT" style={{ color: 'black' }}>CARD PAYMENT</option>
+                        </select>
                         <span className="invoice-separator">|</span>
-                        <span style={{ marginLeft: '5px' }}>Amount paid Rs<span style={{ marginLeft: '2px' }}>{totals.grandTotal.toFixed(2)}</span></span>
+                        <span style={{ marginLeft: '5px' }}>Amount paid PKR<span style={{ marginLeft: '2px' }}>{totals.grandTotal.toFixed(2)}</span></span>
                       </div>
                     </div>
                   </>
@@ -1251,8 +1161,8 @@ function PatientDetails() {
               </div>
 
               <div className="invoice-controls">
-                <button className="invoice-btn invoice-save-btn" onClick={saveBill}>💾 Save Bill to Database</button>
-                <button className="invoice-btn print-btn" onClick={() => window.print()}>🖨️ Print Professional Invoice</button>
+                <button className="invoice-btn invoice-save-btn" onClick={saveBill}>💾 Save</button>
+                <button className="invoice-btn print-btn" onClick={() => window.print()}>🖨️ Print</button>
               </div>
             </div>
 
@@ -1265,7 +1175,13 @@ function PatientDetails() {
                   <div key={bill.id} className="data-item">
                     <h4>{bill.invoice_number}</h4>
                     <p><strong>Date:</strong> {bill.date} | <strong>Staff:</strong> {bill.staff_name || 'N/A'}</p>
-                    <p><strong>Grand Total:</strong> Rs {bill.grand_total.toFixed(2)}</p>
+                    <p><strong>Grand Total:</strong> PKR {bill.grand_total.toFixed(2)}
+                      {bill.discount_amount > 0 && (
+                        <span style={{ color: '#f87171', marginLeft: '10px', fontSize: '0.9em' }}>
+                          (Discount: PKR {bill.discount_amount.toFixed(2)} - {bill.discount_percent}%)
+                        </span>
+                      )}
+                    </p>
                     <p><strong>Items:</strong> {bill.items.length}</p>
                   </div>
                 ))
@@ -1340,8 +1256,15 @@ function PatientDetails() {
                 <small style={{ display: 'block', color: '#666', marginTop: '5px' }}>The system checks this time against the current time.</small>
               </div>
 
-              <div className="form-actions">
-                <button type="submit" className="btn-primary">Schedule Appointment</button>
+              <div className="form-actions" style={{ display: 'flex', gap: '10px' }}>
+                <button type="submit" className="btn-primary">
+                  {editingAppointmentId ? 'Update Appointment' : 'Schedule Appointment'}
+                </button>
+                {editingAppointmentId && (
+                  <button type="button" className="btn btn-secondary" onClick={handleCancelEdit}>
+                    Cancel Edit
+                  </button>
+                )}
               </div>
             </form>
 
@@ -1366,6 +1289,22 @@ function PatientDetails() {
                         <span className={`badge ${appt.sms_status === 'Sent' ? 'success' : appt.sms_status === 'Pending' ? 'warning' : 'error'}`} style={{ marginTop: '5px', display: 'inline-block' }}>
                           SMS: {appt.sms_status}
                         </span>
+                        <div style={{ marginTop: '10px' }}>
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            style={{ padding: '4px 8px', fontSize: '12px' }}
+                            onClick={() => handleEditAppointment(appt)}
+                          >
+                            ✎ Edit
+                          </button>
+                          <button
+                            className="btn btn-danger btn-sm"
+                            style={{ padding: '4px 8px', fontSize: '12px', marginLeft: '5px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                            onClick={() => handleDeleteAppointment(appt.id)}
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}

@@ -18,7 +18,7 @@ class TeethAgent:
         return condition if condition in self.allowed_conditions else ''
     
     def _is_valid_tooth(self, tooth_id: str) -> bool:
-        return isinstance(tooth_id, str) and tooth_id.lower() in self.valid_tooth_ids
+        return isinstance(tooth_id, str) and (tooth_id.lower() in self.valid_tooth_ids or tooth_id.lower() == 'general_notes')
     
     def update_tooth_condition(self, patient_id: int, tooth_id: str, condition: str, db_session) -> Tuple[Dict, int]:
         """Create, update, or delete a tooth condition entry."""
@@ -27,7 +27,10 @@ class TeethAgent:
         if not self._is_valid_tooth(tooth_id):
             return {'error': 'Invalid tooth identifier'}, 400
         
-        normalized_condition = self._normalize_condition(condition)
+        if tooth_id.lower() == 'general_notes':
+            normalized_condition = condition # Don't normalize notes
+        else:
+            normalized_condition = self._normalize_condition(condition)
         tooth_id = tooth_id.lower()
         
         record = (
