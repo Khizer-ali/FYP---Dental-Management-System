@@ -10,30 +10,41 @@ const TOOTH_TYPES = {
 
 const getToothType = (number) => {
     const n = parseInt(number);
-    if ([1, 2, 3, 14, 15, 16, 17, 18, 19, 30, 31, 32].includes(n)) return TOOTH_TYPES.MOLAR;
-    if ([4, 5, 12, 13, 20, 21, 28, 29].includes(n)) return TOOTH_TYPES.PREMOLAR;
-    if ([6, 11, 22, 27].includes(n)) return TOOTH_TYPES.CANINE;
+    // Molars (14-18, 24-28, 34-38, 44-48) -> actually 16-18, 26-28, 36-38, 46-48 (FDI)
+    // FDI 3rd Molar: 18, 28, 38, 48 | 2nd Molar: 17, 27, 37, 47 | 1st Molar: 16, 26, 36, 46
+    if ([16, 17, 18, 26, 27, 28, 36, 37, 38, 46, 47, 48].includes(n)) return TOOTH_TYPES.MOLAR;
+    // Premolars: 14, 15, 24, 25, 34, 35, 44, 45
+    if ([14, 15, 24, 25, 34, 35, 44, 45].includes(n)) return TOOTH_TYPES.PREMOLAR;
+    // Canines: 13, 23, 33, 43
+    if ([13, 23, 33, 43].includes(n)) return TOOTH_TYPES.CANINE;
+    // Incisors: 11, 12, 21, 22, 31, 32, 41, 42
     return TOOTH_TYPES.INCISOR;
 };
 
 const getGridPosition = (number) => {
     const n = parseInt(number);
-    if (n >= 1 && n <= 16) return { arch: 'maxilla', index: n - 1 };
-    if (n >= 17 && n <= 32) return { arch: 'mandible', index: 32 - n };
+    if (n >= 11 && n <= 28) return { arch: 'maxilla', index: n - 11 };
+    if (n >= 31 && n <= 48) return { arch: 'mandible', index: n - 31 };
     return { arch: 'unknown', index: 0 };
 };
 
 const TOOTH_NAMES = {
-    '1': 'Maxillary 3rd Molar', '2': 'Maxillary 2nd Molar', '3': 'Maxillary 1st Molar',
-    '4': 'Maxillary 2nd Premolar', '5': 'Maxillary 1st Premolar', '6': 'Maxillary Canine',
-    '7': 'Maxillary Lateral Incisor', '8': 'Maxillary Central Incisor', '9': 'Maxillary Central Incisor',
-    '10': 'Maxillary Lateral Incisor', '11': 'Maxillary Canine', '12': 'Maxillary 1st Premolar',
-    '13': 'Maxillary 2nd Premolar', '14': 'Maxillary 1st Molar', '15': 'Maxillary 2nd Molar', '16': 'Maxillary 3rd Molar',
-    '17': 'Mandibular 3rd Molar', '18': 'Mandibular 2nd Molar', '19': 'Mandibular 1st Molar',
-    '20': 'Mandibular 2nd Premolar', '21': 'Mandibular 1st Premolar', '22': 'Mandibular Canine',
-    '23': 'Mandibular Lateral Incisor', '24': 'Mandibular Central Incisor', '25': 'Mandibular Central Incisor',
-    '26': 'Mandibular Lateral Incisor', '27': 'Mandibular Canine', '28': 'Mandibular 1st Premolar',
-    '29': 'Mandibular 2nd Premolar', '30': 'Mandibular 1st Molar', '31': 'Mandibular 2nd Molar', '32': 'Mandibular 3rd Molar'
+    // Upper Right (Quadrant 1)
+    '18': 'Maxillary Right 3rd Molar', '17': 'Maxillary Right 2nd Molar', '16': 'Maxillary Right 1st Molar',
+    '15': 'Maxillary Right 2nd Premolar', '14': 'Maxillary Right 1st Premolar', '13': 'Maxillary Right Canine',
+    '12': 'Maxillary Right Lateral Incisor', '11': 'Maxillary Right Central Incisor',
+    // Upper Left (Quadrant 2)
+    '21': 'Maxillary Left Central Incisor', '22': 'Maxillary Left Lateral Incisor', '23': 'Maxillary Left Canine',
+    '24': 'Maxillary Left 1st Premolar', '25': 'Maxillary Left 2nd Premolar',
+    '26': 'Maxillary Left 1st Molar', '27': 'Maxillary Left 2nd Molar', '28': 'Maxillary Left 3rd Molar',
+    // Lower Left (Quadrant 3)
+    '38': 'Mandibular Left 3rd Molar', '37': 'Mandibular Left 2nd Molar', '36': 'Mandibular Left 1st Molar',
+    '35': 'Mandibular Left 2nd Premolar', '34': 'Mandibular Left 1st Premolar', '33': 'Mandibular Left Canine',
+    '32': 'Mandibular Left Lateral Incisor', '31': 'Mandibular Left Central Incisor',
+    // Lower Right (Quadrant 4)
+    '41': 'Mandibular Right Central Incisor', '42': 'Mandibular Right Lateral Incisor', '43': 'Mandibular Right Canine',
+    '44': 'Mandibular Right 1st Premolar', '45': 'Mandibular Right 2nd Premolar',
+    '46': 'Mandibular Right 1st Molar', '47': 'Mandibular Right 2nd Molar', '48': 'Mandibular Right 3rd Molar'
 };
 
 const ToothGraphic = ({ type, isUpper, condition }) => {
@@ -143,7 +154,7 @@ const ToothGraphic = ({ type, isUpper, condition }) => {
 
 const ToothChart = ({ patientId, initialTeethData = {} }) => {
     const [teethData, setTeethData] = useState(initialTeethData);
-    const [selectedTooth, setSelectedTooth] = useState('19'); // Default selection
+    const [selectedTooth, setSelectedTooth] = useState('36'); // Default selection
     const [loading, setLoading] = useState(false);
     const [activeSubTab, setActiveSubTab] = useState('charting');
     const [message, setMessage] = useState(null);
@@ -286,13 +297,13 @@ const ToothChart = ({ patientId, initialTeethData = {} }) => {
         return (
             <div className="arch-row maxilla">
                 <div className="arch-label">Maxilla</div>
-                {renderToothGroup('Molars', [1, 2, 3], 'top', 'maxilla')}
-                {renderToothGroup('Premolars', [4, 5], 'top', 'maxilla')}
-                {renderToothGroup('Canines', [6], 'top', 'maxilla')}
-                {renderToothGroup('Incisors', [7, 8, 9, 10], 'top', 'maxilla')}
-                {renderToothGroup('Canines', [11], 'top', 'maxilla')}
-                {renderToothGroup('Premolars', [12, 13], 'top', 'maxilla')}
-                {renderToothGroup('Molars', [14, 15, 16], 'top', 'maxilla')}
+                {renderToothGroup('', [18, 17, 16], 'top', 'maxilla')}
+                {renderToothGroup('', [15, 14], 'top', 'maxilla')}
+                {renderToothGroup('', [13], 'top', 'maxilla')}
+                {renderToothGroup('', [12, 11, 21, 22], 'top', 'maxilla')}
+                {renderToothGroup('', [23], 'top', 'maxilla')}
+                {renderToothGroup('', [24, 25], 'top', 'maxilla')}
+                {renderToothGroup('', [26, 27, 28], 'top', 'maxilla')}
             </div>
         );
     };
@@ -301,13 +312,13 @@ const ToothChart = ({ patientId, initialTeethData = {} }) => {
         return (
             <div className="arch-row mandible">
                 <div className="arch-label">Mandible</div>
-                {renderToothGroup('Molars', [32, 31, 30], 'bottom', 'mandible')}
-                {renderToothGroup('Premolars', [29, 28], 'bottom', 'mandible')}
-                {renderToothGroup('Canines', [27], 'bottom', 'mandible')}
-                {renderToothGroup('Incisors', [26, 25, 24, 23], 'bottom', 'mandible')}
-                {renderToothGroup('Canines', [22], 'bottom', 'mandible')}
-                {renderToothGroup('Premolars', [21, 20], 'bottom', 'mandible')}
-                {renderToothGroup('Molars', [19, 18, 17], 'bottom', 'mandible')}
+                {renderToothGroup('', [48, 47, 46], 'bottom', 'mandible')}
+                {renderToothGroup('', [45, 44], 'bottom', 'mandible')}
+                {renderToothGroup('', [43], 'bottom', 'mandible')}
+                {renderToothGroup('', [42, 41, 31, 32], 'bottom', 'mandible')}
+                {renderToothGroup('', [33], 'bottom', 'mandible')}
+                {renderToothGroup('', [34, 35], 'bottom', 'mandible')}
+                {renderToothGroup('', [36, 37, 38], 'bottom', 'mandible')}
             </div>
         );
     };

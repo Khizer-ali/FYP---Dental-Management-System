@@ -9,8 +9,6 @@
   color: #e2e8f0;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   overflow: hidden;
-  /* Resetting padding from index.css for the dashboard */
-  margin: -20px;
 }
 
 /* --- Sidebar --- */
