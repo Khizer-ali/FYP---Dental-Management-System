@@ -1,6 +1,6 @@
 # Dental System — Backend
 
-# Dental System — Backend
+
 
 Flask REST API and **agentic workflow** for the Clinical Assistant: document parsing, vitals, family history, medical images, teeth (dental) annotations, AI chatbot, and billing integration. Uses SQLAlchemy (SQLite by default) and a Master Agent that orchestrates specialist agents.
 
