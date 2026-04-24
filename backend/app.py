@@ -5,12 +5,14 @@ Main application file with API endpoints
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import os
+import re
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import uuid
 from config import Config
 from database import db, User, UserRole, Patient, Document, Vital, FamilyHistory, MedicalImage, DentalAssessment, Bill, BillItem, Appointment
 from agents.master_agent import MasterAgent
+from sms_service import send_sms
 from routes.auth_routes import auth_bp
 from routes.user_routes import user_bp
 
@@ -550,12 +552,16 @@ def trigger_sms_alerts():
     for appt in pending_alerts:
         patient = Patient.query.get(appt.patient_id)
         if patient and patient.phone_number:
-            # --- STUBBED SMS API LOGIC ---
-            message = f"[SMS API STUB] Sending SMS to {patient.phone_number}: Hello {patient.name}, you have an appointment on {appt.appointment_datetime.strftime('%Y-%m-%d %H:%M')}."
-            print(f"\n{'-'*50}\n{message}\n{'-'*50}\n")
-            # -----------------------------
-            appt.sms_status = 'Sent'
-            sent_count += 1
+            body = (
+                f"Hello {patient.name}, you have an appointment on "
+                f"{appt.appointment_datetime.strftime('%Y-%m-%d %H:%M')}."
+            )
+            result = send_sms(patient.phone_number, body)
+            if result.ok:
+                appt.sms_status = 'Sent'
+                sent_count += 1
+            else:
+                appt.sms_status = f"Failed - {result.provider}"
         else:
             # If patient has no phone number, we mark it failed or just sent anyway (so we don't keep retrying)
             appt.sms_status = 'Failed - No Phone'

@@ -1,6 +1,8 @@
 """
 Master Agent - Orchestrates all sub-agents in the clinical assistant system
 """
+from patient_context_export import export_patient_context_json_file
+
 from agents.document_agent import DocumentAgent
 from agents.vitals_agent import VitalsAgent
 from agents.family_history_agent import FamilyHistoryAgent
@@ -47,6 +49,14 @@ class MasterAgent:
             'images': [img.to_dict() for img in patient.images],
             'dental_records': [record.to_dict() for record in patient.dental_records]
         }
-        
+
+        # Automatically persist a JSON file artifact for "RAG-style" context.
+        # Non-fatal if it fails.
+        try:
+            context_file = export_patient_context_json_file(int(patient_id), context)
+            context["context_file"] = context_file
+        except Exception as e:
+            context["context_file_error"] = str(e)
+
         return context
 

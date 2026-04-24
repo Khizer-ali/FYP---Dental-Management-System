@@ -5,6 +5,7 @@ Uses Google Gemini API. You can EITHER:
 - set GEMINI_API_KEY / GOOGLE_API_KEY in the environment.
 """
 import os
+import json
 
 # Paste your Gemini API key here if you don't want to use .env/env vars.
 # Example: API_KEY = "AIza...."
@@ -45,40 +46,18 @@ class ChatbotAgent:
             self.chatbot = None
 
     def build_context(self, patient_context):
-        """Build context string from patient data."""
-        context_parts = []
+        """
+        Build context for the model.
 
-        if patient_context.get('patient'):
-            patient = patient_context['patient']
-            context_parts.append(f"Patient: {patient.get('name')} (Ref: {patient.get('reference_number')})")
-
-        if patient_context.get('documents'):
-            context_parts.append("\nMedical Documents:")
-            for doc in patient_context['documents']:
-                if doc.get('parsed_text'):
-                    text = doc['parsed_text'][:500]
-                    context_parts.append(f"- {doc.get('document_type', 'Document')}: {text}...")
-
-        if patient_context.get('vitals'):
-            latest_vitals = patient_context['vitals'][-1]
-            context_parts.append("\nLatest Vital Signs:")
-            if latest_vitals.get('temperature'):
-                context_parts.append(f"Temperature: {latest_vitals['temperature']}°C")
-            if latest_vitals.get('weight'):
-                context_parts.append(f"Weight: {latest_vitals['weight']} kg")
-            if latest_vitals.get('height'):
-                context_parts.append(f"Height: {latest_vitals['height']} cm")
-            if latest_vitals.get('blood_pressure_systolic'):
-                context_parts.append(f"Blood Pressure: {latest_vitals['blood_pressure_systolic']}/{latest_vitals.get('blood_pressure_diastolic', '')} mmHg")
-            if latest_vitals.get('heart_rate'):
-                context_parts.append(f"Heart Rate: {latest_vitals['heart_rate']} bpm")
-
-        if patient_context.get('family_history'):
-            context_parts.append("\nFamily History:")
-            for fh in patient_context['family_history']:
-                context_parts.append(f"- {fh.get('condition')} ({fh.get('relation', 'Unknown relation')})")
-
-        return "\n".join(context_parts)
+        Requirement: patient information should be converted to a JSON file automatically and used as context.
+        We persist that JSON file in `MasterAgent.get_patient_context()` and pass the JSON *content* into the prompt.
+        """
+        try:
+            # Keep full JSON for faithful context; Gemini can handle this size for typical records.
+            return json.dumps(patient_context, ensure_ascii=False, indent=2)
+        except Exception:
+            # Last-resort fallback
+            return str(patient_context)
 
     def generate_response(self, question, patient_context):
         """Generate response to user question using patient context."""
@@ -86,7 +65,7 @@ class ChatbotAgent:
 
         prompt = f"""You are a helpful medical/dental assistant. Use ONLY the following patient context to answer. Do not make up information. If the context does not contain the answer, say so briefly.
 
-Medical Context:
+Patient Context (JSON):
 {context}
 
 Question: {question}

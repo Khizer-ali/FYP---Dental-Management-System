@@ -16,6 +16,9 @@ Pillow==10.1.0
 # AI/ML - chatbot (Gemini API; set GEMINI_API_KEY in .env)
 google-generativeai>=0.8.0
 
+# SMS (optional; falls back to stub if not configured)
+twilio>=9.0.0
+
 # Auth and Security
 python-jose[cryptography]>=3.3.0
 passlib[bcrypt]>=1.7.4

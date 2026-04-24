@@ -647,7 +647,10 @@ function PatientDetails() {
     <div className="container">
       <div className="header">
         <h1 id="patientName">{patientData.name} ({patientData.reference_number})</h1>
-        <button className="btn" onClick={() => navigate('/')}>← Back to Dashboard</button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <button className="btn btn-secondary" onClick={() => setActiveTab('chatbot')}>💬 Open Chatbot</button>
+          <button className="btn" onClick={() => navigate('/')}>← Back to Dashboard</button>
+        </div>
       </div>
 
       <div className="content">

@@ -14,6 +14,7 @@ Flask REST API and **agentic workflow** for the Clinical Assistant: document par
 | **python-dotenv** | Env from `.env` |
 | **PyPDF2, pdf2image, pytesseract, Pillow** | Document and image processing |
 | **google-generativeai** | Chatbot (Gemini API); set `GEMINI_API_KEY` in `.env` |
+| **twilio** | SMS alerts (Twilio API); set `TWILIO_*` vars in `.env` |
 | **python-jose, passlib[bcrypt]** | JWT handling & secure password hashing |
 
 ---
@@ -94,8 +95,31 @@ On startup: `db.create_all()` handles all tables including Patients and Users.
 | `DATABASE_URL` | SQLAlchemy URI (Flask DB or FastAPI auth DB) | `sqlite:///clinical_assistant.db` (Flask) / `sqlite:///./dental_auth.db` (FastAPI) |
 | `AUTH_SECRET_KEY` | JWT signing key for auth service | — (must be set in production) |
 | `GEMINI_API_KEY` | Google Gemini API key for chatbot | — (chatbot uses fallback if unset) |
+| `TWILIO_ACCOUNT_SID` | Twilio account SID | — (SMS falls back to stub if unset) |
+| `TWILIO_AUTH_TOKEN` | Twilio auth token | — (SMS falls back to stub if unset) |
+| `TWILIO_FROM_NUMBER` | Twilio sender number (E.164) | — (SMS falls back to stub if unset) |
 
 Create `.env` in `backend/` if you need to override. `config.py` uses `python-dotenv` for Flask, and the FastAPI auth service reads env variables directly. Get a free API key at [Google AI Studio](https://aistudio.google.com/app/apikey).
+
+### SMS Alerts (Twilio)
+
+- SMS sending is wired via `/api/cron/send-sms`.
+- If Twilio vars are **not** set, the backend will **print a stub message** and still mark the SMS as sent (so the rest of the workflow remains testable).
+
+To enable real SMS sending, add these to `backend/.env` (or your environment):
+
+```bash
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_FROM_NUMBER=+1234567890
+```
+
+### Chatbot Context (Gemini + Patient JSON)
+
+- The endpoint `/api/patients/<id>/context` aggregates patient info.
+- On every context build, the backend also writes a JSON artifact to:
+  - `uploads/contexts/patient_<id>_context.json`
+- Chat endpoint `/api/patients/<id>/chat` sends the **JSON context** to Gemini as prompt context.
 
 ---
 
