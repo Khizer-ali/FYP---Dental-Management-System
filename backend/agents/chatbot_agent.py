@@ -9,7 +9,7 @@ import json
 
 # Paste your Gemini API key here if you don't want to use .env/env vars.
 # Example: API_KEY = "AIza...."
-API_KEY = " "
+API_KEY = ""
 
 try:
     import google.generativeai as genai
@@ -21,12 +21,16 @@ class ChatbotAgent:
     """Agent responsible for medical chatbot functionality using Gemini API."""
 
     def __init__(self):
-        # Use the official Gemini model name; some SDK versions expect the
-        # "models/..." prefix.
-        self.model_name = "models/gemini-1.5-flash"
+        # Pick a model that exists for the configured API key.
+        # (Some older model names like gemini-1.5-flash may no longer be available.)
+        self.model_name = os.environ.get("GEMINI_MODEL", "").strip() or "models/gemini-flash-latest"
         self.chatbot = None  # Truthy when Gemini is configured and ready
-        # Prefer hard-coded API_KEY if you pasted it above, otherwise fall back to env vars
-        self._api_key = API_KEY or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+        # Prefer hard-coded API_KEY if you pasted it above, otherwise fall back to env vars.
+        # Strip to avoid treating whitespace as a "real" key.
+        hardcoded = (API_KEY or "").strip()
+        env_key = (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or "").strip()
+        self._api_key = hardcoded or env_key
+
         if GEMINI_AVAILABLE and self._api_key:
             self._initialize_model()
         else:
@@ -39,7 +43,12 @@ class ChatbotAgent:
         """Initialize the Gemini model."""
         try:
             genai.configure(api_key=self._api_key)
-            self.chatbot = genai.GenerativeModel(self.model_name)
+            # If a model name is wrong/expired, fall back to a known good default.
+            try:
+                self.chatbot = genai.GenerativeModel(self.model_name)
+            except Exception:
+                self.model_name = "models/gemini-flash-latest"
+                self.chatbot = genai.GenerativeModel(self.model_name)
             print(f"Chatbot ready: {self.model_name}")
         except Exception as e:
             print(f"Warning: Could not initialize Gemini: {str(e)}")

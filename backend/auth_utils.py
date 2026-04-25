@@ -3,13 +3,10 @@ import re
 from datetime import datetime, timedelta, timezone
 from typing import Tuple, Dict, Any, Optional
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt
 from functools import wraps
 from flask import request, jsonify
 from database import User, UserRole
-
-# Password configuration
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # JWT configuration
 JWT_ALGORITHM = "HS256"
@@ -24,10 +21,22 @@ def get_secret_key() -> str:
 
 # Password utilities
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    if password is None:
+        raise ValueError("Password is required.")
+    pw_hash = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
+    return pw_hash.decode("utf-8")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    if not plain_password or not hashed_password:
+        return False
+    try:
+        return bcrypt.checkpw(
+            plain_password.encode("utf-8"),
+            hashed_password.encode("utf-8"),
+        )
+    except Exception:
+        # If the stored hash is malformed/unknown format, treat as invalid.
+        return False
 
 def validate_password_strength(password_value: str) -> Tuple[bool, str]:
     if len(password_value) < 8:

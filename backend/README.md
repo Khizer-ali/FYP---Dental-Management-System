@@ -15,7 +15,7 @@ Flask REST API and **agentic workflow** for the Clinical Assistant: document par
 | **PyPDF2, pdf2image, pytesseract, Pillow** | Document and image processing |
 | **google-generativeai** | Chatbot (Gemini API); set `GEMINI_API_KEY` in `.env` |
 | **twilio** | SMS alerts (Twilio API); set `TWILIO_*` vars in `.env` |
-| **python-jose, passlib[bcrypt]** | JWT handling & secure password hashing |
+| **python-jose, bcrypt** | JWT handling & secure password hashing |
 
 ---
 
