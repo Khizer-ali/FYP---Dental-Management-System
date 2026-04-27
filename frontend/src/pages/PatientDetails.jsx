@@ -4,6 +4,7 @@ import '../styles/patient-details.css';
 import '../styles/billing.css';
 import '../index.css';
 import ToothChart from '../components/ToothChart';
+import { SERVICE_CATALOG } from '../constants/serviceCatalog';
 
 const API_BASE = 'http://localhost:5000/api';
 
@@ -365,6 +366,24 @@ function PatientDetails() {
 
   const handleBillServiceChange = (id, field, value) => {
     setBillServices(prev => prev.map(s => s.id === id ? { ...s, [field]: value } : s));
+  };
+
+  const handleSelectCatalogService = (id, selectedName) => {
+    if (selectedName === '__custom__') {
+      setBillServices(prev =>
+        prev.map(s => (s.id === id ? { ...s, name: '', isCustom: true } : s))
+      );
+      return;
+    }
+
+    const match = SERVICE_CATALOG.find(s => s.name === selectedName);
+    setBillServices(prev =>
+      prev.map(s =>
+        s.id === id
+          ? { ...s, name: selectedName, price: match ? match.price : s.price, isCustom: false }
+          : s
+      )
+    );
   };
 
   const addBillRow = () => {
@@ -1040,12 +1059,34 @@ function PatientDetails() {
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center' }}>
                           <span style={{ color: '#666', marginRight: '8px', fontSize: '11px' }}>◆</span>
-                          <input
-                            type="text"
-                            value={service.name}
-                            onChange={(e) => handleBillServiceChange(service.id, 'name', e.target.value)}
-                            placeholder="Service Name"
-                          />
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
+                            <select
+                              value={
+                                service.isCustom
+                                  ? '__custom__'
+                                  : (SERVICE_CATALOG.some(s => s.name === service.name) ? service.name : '')
+                              }
+                              onChange={(e) => handleSelectCatalogService(service.id, e.target.value)}
+                              style={{ width: '100%' }}
+                            >
+                              <option value="">Select procedure</option>
+                              {SERVICE_CATALOG.map((s) => (
+                                <option key={s.name} value={s.name}>
+                                  {s.name}
+                                </option>
+                              ))}
+                              <option value="__custom__">Custom…</option>
+                            </select>
+
+                            {service.isCustom && (
+                              <input
+                                type="text"
+                                value={service.name}
+                                onChange={(e) => handleBillServiceChange(service.id, 'name', e.target.value)}
+                                placeholder="Custom procedure"
+                              />
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td>

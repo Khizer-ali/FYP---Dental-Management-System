@@ -21,6 +21,24 @@
     transition: 0.2s border-color;
 }
 
+.invoice-container select {
+    border: 1px solid transparent;
+    background: #ffffff;
+    font-size: inherit;
+    color: inherit;
+    padding: 2px 4px;
+    width: 100%;
+    font-family: inherit;
+    transition: 0.2s border-color;
+}
+
+.invoice-container select:hover,
+.invoice-container select:focus {
+    border-color: #ddd;
+    outline: none;
+    background: #fbfbfb;
+}
+
 .invoice-container input:hover,
 .invoice-container input:focus {
     border-color: #ddd;

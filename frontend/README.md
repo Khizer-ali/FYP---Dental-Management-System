@@ -1,7 +1,5 @@
 # Dental System — Frontend
 
-# Dental System — Frontend
-
 React frontend for the **Clinical Assistant** application. It provides the dashboard, patient management, and UIs for documents, vitals, family history, images, teeth annotations, the medical chatbot, and billing invoices.
 
 ---
@@ -105,7 +103,7 @@ Authorization: Bearer <access_token>
   - **Family History** — Form (condition, relation, age of onset, notes); list entries
   - **Images** — Upload PNG/JPG/DICOM; list with type and description
   - **Teeth X-Ray** — 32-tooth SVG; click to set root/cavity/both or clear
-  - **Billing** — Dynamic invoice generator; add services, apply discounts, save to DB, print to PDF
+  - **Billing** — Dynamic invoice generator; add services (dropdown), apply discounts, save to DB, print to PDF
   - **Chatbot** — Chat input; answers use patient context from the backend
 
 ---
@@ -120,6 +118,18 @@ API calls for clinical data use `http://localhost:5000/api`. To change it, updat
 For any future auth-aware components, consider exposing an `AUTH_BASE` (e.g. `http://localhost:8000`) via `import.meta.env` and using it for `/auth/*` and `/users/*` routes.
 
 For production, use env or build-time config (e.g. Vite `import.meta.env`) for both `API_BASE` and any `AUTH_BASE` you introduce.
+
+---
+
+## How to make changes (where to edit)
+
+- **Main patient workflow UI (tabs + forms)**: `src/pages/PatientDetails.jsx`
+  - Billing invoice UI lives here (services table, totals, save call)
+- **Billing procedure list (dropdown)**: `src/constants/serviceCatalog.js`
+- **Billing invoice CSS**: `src/styles/billing.css`
+- **Billing history page**: `src/pages/BillingHistoryPage.jsx`
+- **Dashboard**: `src/pages/Dashboard.jsx`
+- **Auth page**: `src/pages/AuthPage.jsx`
 
 ---
 

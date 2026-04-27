@@ -1,248 +1,123 @@
-# Dental System — Backend
+# Dental Management System (FYP)
 
+A full-stack Dental/Clinical Assistant system:
 
+- **Frontend**: React (Vite) UI for patients, appointments, billing invoices, and chatbot
+- **Backend**: Flask REST API + SQLAlchemy + “agent” modules (documents, vitals, family history, images, teeth, chatbot)
 
-Flask REST API and **agentic workflow** for the Clinical Assistant: document parsing, vitals, family history, medical images, teeth (dental) annotations, AI chatbot, and billing integration. Uses SQLAlchemy (SQLite by default) and a Master Agent that orchestrates specialist agents.
+For detailed docs, see:
 
----
-
-## Tech Stack
-
-| **Flask 3** | Web framework for consolidated APIs |
-| **Flask-CORS** | Cross-origin for frontend |
-| **Flask-SQLAlchemy** | ORM and DB setup |
-| **python-dotenv** | Env from `.env` |
-| **PyPDF2, pdf2image, pytesseract, Pillow** | Document and image processing |
-| **google-generativeai** | Chatbot (Gemini API); set `GEMINI_API_KEY` in `.env` |
-| **twilio** | SMS alerts (Twilio API); set `TWILIO_*` vars in `.env` |
-| **python-jose, passlib[bcrypt]** | JWT handling & secure password hashing |
+- `backend/README.md`
+- `frontend/README.md`
 
 ---
 
-## Project Structure
+## Quick start (dev)
 
-```
-backend/
-├── agents/
-│   ├── __init__.py
-│   ├── master_agent.py      # Orchestrates sub-agents
-│   ├── document_agent.py    # PDF/TXT/image parsing, OCR
-│   ├── vitals_agent.py      # Validate and store vitals
-│   ├── family_history_agent.py
-│   ├── image_agent.py       # Validate and store medical images
-│   ├── teeth_agent.py       # Tooth conditions (root, cavity, both)
-│   └── chatbot_agent.py     # AI answers using patient context
-├── instance/                 # SQLite DB (created at runtime)
-├── uploads/                  # documents/, images/ (created at runtime)
-├── app.py                    # Flask clinical APIs (patients, agents, billing)
-├── config.py                 # Config from env
-├── routes/
-│   ├── auth_routes.py        # /auth endpoints (login, register, me)
-│   └── user_routes.py        # /users endpoints (admin/doctor-protected)
-├── auth_utils.py             # JWT & Password helpers
-├── config.py                 # Config from env
-├── database.py               # Models: Patient, Document, Vital, User, etc.
-├── requirements.txt
-└── README.md
-```
-
----
-
-## Setup
-
-### 1. Virtual environment
+### Backend (Flask API)
 
 ```bash
 cd backend
 python -m venv venv
-
-# Windows:
-venv\Scripts\activate
-
-# macOS/Linux:
-source venv/bin/activate.fish
-```
-
-### 2. Dependencies
-
-```bash
+source venv/bin/activate
 pip install -r requirements.txt
-```
-
-### 3. Tesseract (for document OCR)
-
-- **Windows:** [Tesseract installer](https://github.com/UB-Mannheim/tesseract/wiki)
-- **macOS:** `brew install tesseract`
-- **Linux:** `sudo apt-get install tesseract-ocr`
-
-### Run Flask consolidated API
-
-```bash
 python app.py
 ```
 
-Runs at **http://localhost:5000** (debug).  
-Includes clinical data APIs AND authentication (JWT, roles).
-On startup: `db.create_all()` handles all tables including Patients and Users.
+Backend runs on `http://localhost:5000`.
 
----
-
-## Environment
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `SECRET_KEY` | Flask secret | `dev-secret-key-change-in-production` |
-| `DATABASE_URL` | SQLAlchemy URI (Flask DB or FastAPI auth DB) | `sqlite:///clinical_assistant.db` (Flask) / `sqlite:///./dental_auth.db` (FastAPI) |
-| `AUTH_SECRET_KEY` | JWT signing key for auth service | — (must be set in production) |
-| `GEMINI_API_KEY` | Google Gemini API key for chatbot | — (chatbot uses fallback if unset) |
-| `TWILIO_ACCOUNT_SID` | Twilio account SID | — (SMS falls back to stub if unset) |
-| `TWILIO_AUTH_TOKEN` | Twilio auth token | — (SMS falls back to stub if unset) |
-| `TWILIO_FROM_NUMBER` | Twilio sender number (E.164) | — (SMS falls back to stub if unset) |
-
-Create `.env` in `backend/` if you need to override. `config.py` uses `python-dotenv` for Flask, and the FastAPI auth service reads env variables directly. Get a free API key at [Google AI Studio](https://aistudio.google.com/app/apikey).
-
-### SMS Alerts (Twilio)
-
-- SMS sending is wired via `/api/cron/send-sms`.
-- If Twilio vars are **not** set, the backend will **print a stub message** and still mark the SMS as sent.
-
-To enable real SMS sending, add these to `backend/.env` (or your environment):
+### Frontend (React)
 
 ```bash
-TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TWILIO_FROM_NUMBER=+1234567890
+cd frontend
+npm install
+npm run dev
 ```
 
-### Chatbot Context (Gemini + Patient JSON)
-
-- `/api/patients/<id>/context` aggregates the patient info and also writes:
-  - `uploads/contexts/patient_<id>_context.json`
-- `/api/patients/<id>/chat` sends the **JSON context** into Gemini.
+Frontend runs on `http://localhost:5173` (Vite default) and calls the backend at `http://localhost:5000/api`.
 
 ---
 
-## Database Models
+## Configuration (env vars)
 
-- **Patient** — `id`, `reference_number`, `name`, `created_at`, `updated_at`
-- **Document** — `patient_id`, `filename`, `file_path`, `parsed_text`, `document_type`, `uploaded_at`
-- **Vital** — `patient_id`, temperature, weight, height, BP, heart rate, respiratory rate, SpO₂, `recorded_at`
-- **FamilyHistory** — `patient_id`, `condition`, `relation`, `age_of_onset`, `notes`, `recorded_at`
-- **MedicalImage** — `patient_id`, `filename`, `file_path`, `image_type`, `description`, `uploaded_at`
-- **DentalAssessment** — `patient_id`, `tooth_id`, `condition` (root/cavity/both), `updated_at`; unique per `(patient_id, tooth_id)`
-- **Bill** — `patient_id`, `invoice_number`, `staff_name`, `appointment_date`, subtotals/totals, `payment_method`, `created_at`
-- **BillItem** — `bill_id`, `service_name`, `quantity`, `price`, `total`
+Copy `.env.example` to `backend/.env` and fill what you need:
+
+- `GEMINI_API_KEY`: enables Gemini chatbot
+- `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`: enables real SMS sending
+
+Optional:
+
+- `GEMINI_MODEL`: override chatbot model (default: `models/gemini-flash-latest`)
 
 ---
 
-## API Endpoints
+## How the system works (high level)
 
-### System
+### Data flow
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/health` | GET | `{"status": "backend running"}` |
-| `/api/agents/status` | GET | Status of master + document, vitals, family_history, chatbot, image, teeth |
+1. **Frontend** sends requests to Flask under `/api/*` (and auth under `/auth/*` and `/users/*`)
+2. **Flask** routes in `backend/app.py` receive requests and use SQLAlchemy models in `backend/database.py`
+3. **MasterAgent** in `backend/agents/master_agent.py` orchestrates specialized agents (documents/vitals/family/images/teeth/chatbot)
+4. Responses go back to the frontend; the UI updates local React state
 
-### Patients
+### Database
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/patients` | GET | List all patients |
-| `/api/patients` | POST | Create (JSON: `name`, optional `reference_number`) |
-| `/api/patients/<id>` | GET | Get one patient |
-| `/api/patients/<id>/context` | GET | Full context for chatbot (docs, vitals, family, etc.) |
+- SQLite by default (configurable via `DATABASE_URL`)
+- Tables are created on startup via `db.create_all()` in `backend/app.py`
 
-### Documents
+### Auth
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/patients/<id>/documents` | GET | List documents |
-| `/api/patients/<id>/documents` | POST | `multipart/form-data`: `file`, `document_type` (default "Medical Report") |
-
-### Vitals
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/patients/<id>/vitals` | GET | List vitals |
-| `/api/patients/<id>/vitals` | POST | JSON: temperature, weight, height, blood_pressure_systolic/diastolic, heart_rate, respiratory_rate, oxygen_saturation |
-
-### Family History
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/patients/<id>/family-history` | GET | List entries |
-| `/api/patients/<id>/family-history` | POST | JSON: `condition`, `relation`, `age_of_onset`, `notes` |
-
-### Images
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/patients/<id>/images` | GET | List images |
-| `/api/patients/<id>/images` | POST | `multipart/form-data`: `file`, `image_type`, `description` |
-
-### Teeth
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/patients/<id>/teeth` | GET | `{ tooth_id: condition, ... }` |
-| `/api/patients/<id>/teeth` | POST | JSON: `tooth_id`, `condition` (`"root"`, `"cavity"`, `"both"`, or `""` to clear) |
-
-### Chatbot
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/patients/<id>/chat` | POST | JSON: `question` → `{ question, response, patient_context_used }` |
+- Endpoints live in `backend/routes/auth_routes.py` and `backend/routes/user_routes.py`
+- JWT helpers + password hashing live in `backend/auth_utils.py`
 
 ### Billing
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/bills` | POST | Save a new bill and its items |
-| `/api/patients/<id>/bills` | GET | List bills for a patient |
-
-### Static
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/uploads/<path>` | GET | Serve files from `uploads/` |
+- Frontend billing UI is on the **Billing tab** in `frontend/src/pages/PatientDetails.jsx`
+- Backend persistence is in `backend/app.py` (bill creation) + models in `backend/database.py` (`Bill`, `BillItem`)
 
 ---
 
-## Agents
+## “Where do I change X?” (common edits)
 
-- **Master Agent** — `get_patient_context()`, `get_agent(name)`
-- **Document Agent** — `parse_document()`, `store_document()`; PDF, TXT, images; OCR via Tesseract
-- **Vitals Agent** — `validate_vitals()`, `store_vitals()`
-- **Family History Agent** — `validate_family_history()`, `store_family_history()`
-- **Image Agent** — `validate_image()`, `process_image()`, `store_image()`; PNG, JPG, DICOM
-- **Teeth Agent** — `get_teeth()`, `update_tooth_condition()`; `tooth_id` (e.g. `t1`–`t32`), `condition`: root/cavity/both or empty
-- **Chatbot Agent** — `generate_response(question, context)`; uses patient context; can use local transformers or fallback
+### Frontend UI
+
+- **Patient tabs UI (documents/vitals/images/teeth/billing/chatbot/appointments)**: `frontend/src/pages/PatientDetails.jsx`
+- **Dashboard**: `frontend/src/pages/Dashboard.jsx`
+- **Billing invoice styling**: `frontend/src/styles/billing.css`
+- **Billing procedure dropdown list**: `frontend/src/constants/serviceCatalog.js`
+
+### Backend APIs + logic
+
+- **Main Flask app + routes**: `backend/app.py`
+- **DB models**: `backend/database.py`
+- **JWT + password**: `backend/auth_utils.py`
+- **Auth endpoints**: `backend/routes/auth_routes.py`, `backend/routes/user_routes.py`
+- **Agents**: `backend/agents/*`
+  - Chatbot config/model: `backend/agents/chatbot_agent.py`
+  - Context aggregation: `backend/agents/master_agent.py`
+
+### Chatbot (Gemini)
+
+- Configure keys in `backend/.env`
+- Model defaults / overrides in `backend/agents/chatbot_agent.py` (supports `GEMINI_MODEL`)
+
+### SMS (Twilio)
+
+- Env vars in `backend/.env`
+- SMS implementation in `backend/sms_service.py`
+- Trigger endpoint documented in `backend/README.md` (`/api/cron/send-sms`)
 
 ---
 
-## Auth API (Flask)
+## Project structure
 
-**Base URL:** `http://localhost:5000`
-
-### Authentication & Users
-
-| Endpoint | Method | Description | Role |
-|----------|--------|-------------|------|
-| `/auth/register_admin` | POST | Create the **first** admin user | Public (one-time bootstrap) |
-| `/auth/create_doctor` | POST | Create a doctor account | Admin |
-| `/auth/login` | POST | Login as admin/doctor, returns JWT | Public |
-| `/auth/me` | GET | Get current authenticated user | Authenticated |
-| `/users/` | GET | List all users | Admin |
-| `/users/{user_id}` | PATCH | Update a user (name, role, active) | Admin |
-| `/users/me/patients` | GET | Example doctor-only endpoint | Doctor |
-
-**JWT details**
-
-- Token type: **Bearer**
-- Signing: `HS256` using `AUTH_SECRET_KEY` (or `SECRET_KEY` if set)
-- Expiration: **2 hours** (`exp` claim)
-- Payload includes: `sub` (user id), `role` (`admin` or `doctor`), `exp`
+```
+.
+├── backend/                 # Flask API + DB + agents
+├── frontend/                # React UI (Vite)
+├── .env.example             # Env template (copy to backend/.env)
+└── README.md                # This file
+```
 
 ## File Uploads
 

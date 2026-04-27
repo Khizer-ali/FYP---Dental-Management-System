@@ -1,7 +1,5 @@
 # Dental System — Backend
 
-# Dental System — Backend
-
 Flask REST API and **agentic workflow** for the Clinical Assistant: document parsing, vitals, family history, medical images, teeth (dental) annotations, AI chatbot, and billing integration. Uses SQLAlchemy (SQLite by default) and a Master Agent that orchestrates specialist agents.
 
 ---
@@ -95,6 +93,7 @@ On startup: `db.create_all()` handles all tables including Patients and Users.
 | `DATABASE_URL` | SQLAlchemy URI (Flask DB or FastAPI auth DB) | `sqlite:///clinical_assistant.db` (Flask) / `sqlite:///./dental_auth.db` (FastAPI) |
 | `AUTH_SECRET_KEY` | JWT signing key for auth service | — (must be set in production) |
 | `GEMINI_API_KEY` | Google Gemini API key for chatbot | — (chatbot uses fallback if unset) |
+| `GEMINI_MODEL` | Gemini model override | `models/gemini-flash-latest` |
 | `TWILIO_ACCOUNT_SID` | Twilio account SID | — (SMS falls back to stub if unset) |
 | `TWILIO_AUTH_TOKEN` | Twilio auth token | — (SMS falls back to stub if unset) |
 | `TWILIO_FROM_NUMBER` | Twilio sender number (E.164) | — (SMS falls back to stub if unset) |
@@ -120,6 +119,23 @@ TWILIO_FROM_NUMBER=+1234567890
 - On every context build, the backend also writes a JSON artifact to:
   - `uploads/contexts/patient_<id>_context.json`
 - Chat endpoint `/api/patients/<id>/chat` sends the **JSON context** to Gemini as prompt context.
+
+### How the backend is organized (where to change things)
+
+- **Main API**: `app.py`
+  - Registers blueprints (`routes/*`)
+  - Initializes DB (`database.py`)
+  - Hosts most `/api/*` endpoints (patients, documents, vitals, images, teeth, billing, appointments)
+- **Database models**: `database.py`
+  - Tables: `Patient`, `Document`, `Vital`, `FamilyHistory`, `MedicalImage`, `DentalAssessment`, `Bill`, `BillItem`, `Appointment`, `User`
+- **Auth + security**:
+  - Routes: `routes/auth_routes.py`, `routes/user_routes.py`
+  - JWT + password hashing: `auth_utils.py`
+- **Agent modules**: `agents/*`
+  - Orchestration: `agents/master_agent.py`
+  - Gemini chatbot: `agents/chatbot_agent.py`
+  - Data helpers: `document_agent.py`, `vitals_agent.py`, `family_history_agent.py`, `image_agent.py`, `teeth_agent.py`
+- **SMS**: `sms_service.py` (Twilio integration + safe fallback)
 
 ---
 
