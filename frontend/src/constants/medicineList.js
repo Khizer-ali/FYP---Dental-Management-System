@@ -1,0 +1,21 @@
+export const MEDICINE_LIST = [
+  "Tab Augmentin 625mg",
+  "Tab Augmentin 1g",
+  "Tab velocef 500 mg",
+  "Tab panadol 100mg",
+  "Tab Ansaid 100mg",
+  "Tab Movax 2mg",
+  "Cap Risek 40mg",
+  "Dicloran gel",
+  "Enziclor mouthwash",
+  "Laxatonil 0.5mg",
+  "Cap vibramycin 100mg",
+  "Tab tegral 200mg",
+  "Tab gabika 50 mg",
+  "Ca-C 1000",
+  "Removate gel",
+  "Enziclor gel",
+  "Tab benzen -ds",
+  "Tab flagyl 400mg",
+  "Somogel"
+];

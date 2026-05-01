@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Python
 __pycache__/
 *.py[cod]
@@ -33,3 +34,40 @@ dist/
 .vscode/
 .idea/
 *.swp
+=======
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+**/venv/
+**/.venv/
+instance/
+uploads/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+.ipynb_checkpoints/
+.python-version
+.coverage
+coverage.xml
+.tox/
+pip-wheel-metadata/
+.eggs/
+*.egg-info/
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+dist/
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+>>>>>>> 21d5d1dd93ec57f1b541daadb89588e7896dc201
