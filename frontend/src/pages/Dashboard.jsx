@@ -4,7 +4,7 @@ import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import '../styles/dashboard.css';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 const CHART_W = 560;
 const CHART_H = 160;
 const PAD = { top: 20, right: 20, bottom: 30, left: 42 };

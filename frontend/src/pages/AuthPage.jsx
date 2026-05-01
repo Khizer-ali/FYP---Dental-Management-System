@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/auth.css';
 
-const AUTH_BASE = import.meta.env.VITE_AUTH_BASE || 'http://localhost:5000';
+const AUTH_BASE = import.meta.env.VITE_AUTH_BASE || '';
 
 function AuthPage() {
   const navigate = useNavigate();

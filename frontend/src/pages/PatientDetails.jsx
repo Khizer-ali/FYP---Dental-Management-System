@@ -6,7 +6,7 @@ import '../index.css';
 import ToothChart from '../components/ToothChart';
 import { SERVICE_CATALOG } from '../constants/serviceCatalog';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
 function PatientDetails() {
   const { patientId } = useParams();
