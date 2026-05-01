@@ -1,0 +1,34 @@
+Flask==3.0.0
+Flask-CORS==4.0.0
+Flask-SQLAlchemy==3.1.1
+python-dotenv==1.0.0
+Werkzeug==3.0.1
+
+# Document processing
+PyPDF2==3.0.1
+pdf2image==1.16.3
+pytesseract==0.3.10
+Pillow==10.1.0
+
+# Image processing
+Pillow==10.1.0
+
+# AI/ML - chatbot (Gemini API; set GEMINI_API_KEY in .env)
+google-generativeai>=0.8.0
+
+# SMS (optional; falls back to stub if not configured)
+twilio>=9.0.0
+
+# Auth and Security
+python-jose[cryptography]>=3.3.0
+bcrypt>=4.0.0
+email-validator>=2.2.0
+
+# Database
+SQLAlchemy>=2.0.0
+psycopg2-binary>=2.9.0
+
+# Note: For OCR to work, you also need to install Tesseract OCR:
+# Windows: Download from https://github.com/UB-Mannheim/tesseract/wiki
+# macOS: brew install tesseract
+# Linux: sudo apt-get install tesseract-ocr
