@@ -476,10 +476,10 @@ function PatientDetails() {
     }
   };
 
-// Medicine functions
+  // Medicine functions
   const loadMedicines = async () => {
     try {
-      const response = await fetch(`${API_BASE}/patients/${patientId}/medicines`);
+      const response = await fetch(`${API_BASE}/patients/${patientId}/prescriptions`);
       const data = await response.json();
       setMedicines(data);
     } catch (error) {
@@ -583,7 +583,7 @@ function PatientDetails() {
     };
 
     try {
-      const response = await fetch(`${API_BASE}/medicines`, {
+      const response = await fetch(`${API_BASE}/prescriptions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -603,10 +603,10 @@ function PatientDetails() {
         }));
         loadMedicines();
       } else {
-        showMessage('medicineingMessage', result.error || 'Error saving medicine', 'error');
+        showMessage('medicineMessage', result.error || 'Error saving medicine', 'error');
       }
     } catch (error) {
-      showMessage('medicineingMessage', 'Network error: ' + error.message, 'error');
+      showMessage('medicineMessage', 'Network error: ' + error.message, 'error');
     }
   };
 
@@ -1392,7 +1392,7 @@ function PatientDetails() {
           </div>
         )}
 
-{/* Medicine Tab */}
+        {/* Medicine Tab */}
         {activeTab === 'medicine' && (
           <div id="medicine" className="tab-content active">
 
@@ -1500,7 +1500,7 @@ function PatientDetails() {
                               style={{ width: '100%' }}
                             >
                               <option value="">Select procedure</option>
-                              {['Option 1', 'Option 2', 'Option 3'].map((s) => (
+                              {['Somogel', 'Tab Augmentin 625mg', 'Tab Augmentin 1g', 'Tab velocef 500 mg', 'Tab panadol 100mg ', 'Tab Ansaid 100mg ', 'Tab Movax 2mg ', 'Cap Risek 40mg ', 'Dicloran gel', 'Enziclor mouthwash', 'Laxatonil 0.5mg', 'Cap vibramycin 100mg', 'Tab tegral 200mg', 'Tab gabika 50 mg', 'Ca-C 1000', 'Removate gel', 'Enziclor gel', 'Tab benzen -ds', 'Tab flagyl 400mg'].map((s) => (
                                 <option key={s} value={s}>
                                   {s}
                                 </option>
