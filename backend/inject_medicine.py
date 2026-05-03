@@ -1,6 +1,17 @@
 import re
 
-with open("frontend/src/pages/PatientDetails.jsx", "r") as f:
+import os
+
+# Find the frontend file path regardless of whether we are in root or backend
+target_file = "frontend/src/pages/PatientDetails.jsx"
+if not os.path.exists(target_file):
+    target_file = os.path.join("..", target_file)
+
+if not os.path.exists(target_file):
+    print("Error: Could not find PatientDetails.jsx")
+    exit(1)
+
+with open(target_file, "r") as f:
     content = f.read()
 
 # 1. Inject Medicine States
@@ -115,6 +126,6 @@ if billing_tab_match:
     
     content = re.sub(billing_tab_pattern, r"\1\n\n" + medicine_tab_code, content, flags=re.DOTALL)
 
-with open("frontend/src/pages/PatientDetails.jsx", "w") as f:
+with open(target_file, "w") as f:
     f.write(content)
 

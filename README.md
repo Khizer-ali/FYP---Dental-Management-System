@@ -1,222 +1,130 @@
-# Dental Management System (FYP)
+# 🦷 DentaFlow Pro — Dental Management System (FYP)
 
-A full-stack Dental/Clinical Assistant system:
+![DentaFlow Pro Hero](/home/khizer/.gemini/antigravity/brain/c85257d3-8358-4afc-8d00-b1398217ca8e/dental_management_system_hero_1777789498504.png)
 
-- **Frontend**: React (Vite) UI for patients, appointments, billing invoices, and chatbot
-- **Backend**: Flask REST API + SQLAlchemy + “agent” modules (documents, vitals, family history, images, teeth, chatbot)
-
-For detailed docs, see:
-
-- `backend/README.md`
-- `frontend/README.md`
+> **Next-Generation Clinical Assistant & Practice Management System**
+>
+> DentaFlow Pro is a state-of-the-art dental management solution designed to streamline clinical workflows through AI-powered insights, agentic automation, and a premium user experience.
 
 ---
 
-## Quick start (dev)
+## 🌟 Key Features
 
-### Backend (Flask API)
+### 🤖 AI & Agentic Intelligence
+- **Master Agent Orchestration**: A central AI brain that coordinates specialized sub-agents for medical data processing.
+- **Gemini Chatbot**: Interactive AI assistant that understands full patient context (vitals, history, dental records) to provide clinical answers.
+- **Smart Document Parsing**: Automated extraction of information from medical reports using OCR and AI.
+- **Teeth Annotation System**: Digital 32-tooth chart with interactive condition tracking (Root Canal, Cavity, etc.).
 
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-python app.py
-```
+### 🏥 Clinical Management
+- **Electronic Health Records (EHR)**: Comprehensive storage for patient vitals, medical history, and family predispositions.
+- **Medical Image Repository**: Dedicated support for PNG, JPG, and DICOM imaging with metadata tagging.
+- **Vitals Tracking**: Real-time logging and historical visualization of patient biometric data.
 
-Backend runs on `http://localhost:5000`.
-
-### Frontend (React)
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Frontend runs on `http://localhost:5173` (Vite default) and calls the backend at `http://localhost:5000/api`.
+### 💼 Administrative Excellence
+- **Dynamic Billing & Invoicing**: Automated invoice generation with procedure catalogs, custom discounts, and payment tracking.
+- **Appointment Scheduler**: Integrated calendar system for managing patient visits.
+- **SMS Notifications**: Automated alerts and reminders powered by Twilio to reduce no-show rates.
+- **Role-Based Access Control (RBAC)**: Secure multi-user environment with Admin and Doctor roles.
 
 ---
 
-## Configuration (env vars)
+## 🔬 Project Deep-Dive
 
-Copy `.env.example` to `backend/.env` and fill what you need:
+### 📂 File Structure & Purpose
 
-- `GEMINI_API_KEY`: enables Gemini chatbot
-- `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`: enables real SMS sending
+#### 🖥️ Backend (Flask) — `backend/`
+- **`app.py`**: The central nervous system. It handles all REST API routing, server initialization, and orchestrates calls between the database and the Master Agent.
+- **`database.py`**: Contains the **SQLAlchemy Models**. This is where the schema for Patients, Doctors, Appointments, Bills, and Medical Records is defined.
+- **`agents/`**: The "Agentic" layer.
+    - `master_agent.py`: Aggregates patient data into a single JSON context for the AI.
+    - `chatbot_agent.py`: Interfaces with Google Gemini API to generate clinical responses.
+    - `teeth_agent.py`: Logic for mapping dental conditions to specific tooth IDs.
+- **`routes/`**: Modular API logic for Authentication and User management.
+- **`auth_utils.py`**: Security helpers for JWT (JSON Web Tokens) and Bcrypt password hashing.
+- **`sms_service.py`**: Integration with Twilio for sending real-world SMS alerts.
 
-Optional:
-
-- `GEMINI_MODEL`: override chatbot model (default: `models/gemini-flash-latest`)
-
----
-
-## How the system works (high level)
-
-### Data flow
-
-1. **Frontend** sends requests to Flask under `/api/*` (and auth under `/auth/*` and `/users/*`)
-2. **Flask** routes in `backend/app.py` receive requests and use SQLAlchemy models in `backend/database.py`
-3. **MasterAgent** in `backend/agents/master_agent.py` orchestrates specialized agents (documents/vitals/family/images/teeth/chatbot)
-4. Responses go back to the frontend; the UI updates local React state
-
-### Database
-
-- SQLite by default (configurable via `DATABASE_URL`)
-- Tables are created on startup via `db.create_all()` in `backend/app.py`
-
-### Auth
-
-- Endpoints live in `backend/routes/auth_routes.py` and `backend/routes/user_routes.py`
-- JWT helpers + password hashing live in `backend/auth_utils.py`
-
-### Billing
-
-- Frontend billing UI is on the **Billing tab** in `frontend/src/pages/PatientDetails.jsx`
-- Backend persistence is in `backend/app.py` (bill creation) + models in `backend/database.py` (`Bill`, `BillItem`)
+#### 🎨 Frontend (React) — `frontend/`
+- **`src/pages/`**:
+    - `Dashboard.jsx`: High-level overview, patient creation, and practice analytics.
+    - `PatientDetails.jsx`: The most complex page; manages the 8-tab interface for clinical data.
+    - `AuthPage.jsx`: Secure login and registration portal.
+- **`src/components/`**:
+    - `ToothChart.jsx`: An interactive SVG-based dental map that allows doctors to mark teeth visually.
+- **`src/constants/serviceCatalog.js`**: The master list of dental procedures and their default prices used in billing.
+- **`src/styles/`**: Custom Vanilla CSS for the premium glassmorphism and clinical aesthetics.
 
 ---
 
-## “Where do I change X?” (common edits)
+## 📦 Dependencies & Technologies
 
-### Frontend UI
+### Backend Core
+- **Flask**: A lightweight but powerful WSGI web framework.
+- **SQLAlchemy**: An Object-Relational Mapper (ORM) that lets us interact with the database using Python objects instead of raw SQL.
+- **Google Generative AI**: The SDK for Gemini, enabling our agentic chatbot capabilities.
+- **PyPDF2 & Tesseract**: Used for reading and extracting text from uploaded medical PDFs and scanned images (OCR).
+- **Python-Jose & Bcrypt**: Ensure user passwords are never stored in plain text and sessions are signed securely.
 
-- **Patient tabs UI (documents/vitals/images/teeth/billing/chatbot/appointments)**: `frontend/src/pages/PatientDetails.jsx`
-- **Dashboard**: `frontend/src/pages/Dashboard.jsx`
-- **Billing invoice styling**: `frontend/src/styles/billing.css`
-- **Billing procedure dropdown list**: `frontend/src/constants/serviceCatalog.js`
-
-### Backend APIs + logic
-
-- **Main Flask app + routes**: `backend/app.py`
-- **DB models**: `backend/database.py`
-- **JWT + password**: `backend/auth_utils.py`
-- **Auth endpoints**: `backend/routes/auth_routes.py`, `backend/routes/user_routes.py`
-- **Agents**: `backend/agents/*`
-  - Chatbot config/model: `backend/agents/chatbot_agent.py`
-  - Context aggregation: `backend/agents/master_agent.py`
-
-### Chatbot (Gemini)
-
-- Configure keys in `backend/.env`
-- Model defaults / overrides in `backend/agents/chatbot_agent.py` (supports `GEMINI_MODEL`)
-
-### SMS (Twilio)
-
-- Env vars in `backend/.env`
-- SMS implementation in `backend/sms_service.py`
-- Trigger endpoint documented in `backend/README.md` (`/api/cron/send-sms`)
+### Frontend Core
+- **React 19**: The latest version of the popular UI library for building fast, reactive interfaces.
+- **Vite**: A modern build tool that provides lightning-fast development and optimized production bundles.
+- **React Router 7**: Handles the navigation between Dashboard, Patient profiles, and Billing history.
+- **Axios**: Manages the asynchronous communication between the React UI and the Flask API.
 
 ---
 
-## Project structure
+## 💊 Pharmacy Reference
+*Commonly prescribed medications integrated into the system catalog:*
 
-```
-.
-├── backend/                 # Flask API + DB + agents
-├── frontend/                # React UI (Vite)
-├── .env.example             # Env template (copy to backend/.env)
-└── README.md                # This file
-```
-
-## File Uploads
-
-- **Config:** `UPLOAD_FOLDER='uploads'`, `MAX_CONTENT_LENGTH=16MB`
-- **Document types:** `pdf`, `txt`, `png`, `jpg`, `jpeg`, `dicom`, `dcm`
-- **Paths:** `uploads/documents/`, `uploads/images/`; filenames prefixed with `YYYYMMDD_HHMMSS_`
-
----
-
-## Deployment using Docker (Step-by-Step for Beginners)
-
-We have set up this project to use **Docker**, which makes deploying the application very simple. Think of Docker as a magic box that contains everything your application needs to run, so you don't have to install coding tools or databases directly on your computer or server.
-
-Follow these simple steps to get your Dental Management System live:
-
-### Step 1: Install Docker
-
-**For Windows:**
-1. Download [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop/).
-2. Run the installer and follow the on-screen instructions.
-3. Once installed, open the "Docker Desktop" application. Make sure it says "Running" in the bottom left corner. (You may need to enable WSL2 in Windows if prompted).
-
-**For Linux (Ubuntu/Debian):**
-1. Open your terminal.
-2. Run the following command to install Docker and Docker Compose:
-    ```bash
-    sudo apt update
-    sudo apt install -y docker.io docker-compose
-    ```
-
-**For Linux (Arch/Manjaro):**
-1. Open your terminal.
-2. Run the following command to install Docker and Docker Compose:
-    ```bash
-    sudo pacman -Syu docker docker-compose
-    sudo systemctl start docker
-    sudo systemctl enable docker
-    ```
-3. Add your user to the docker group (optional but recommended, so you don't have to type `sudo` every time):
-    ```bash
-    sudo usermod -aG docker $USER
-    ```
-    *(Note: You will need to log out and log back in for this to take effect).*
-
-### Step 2: Open Your Project
-Open a terminal (or command prompt/PowerShell on Windows) and navigate to the folder where this project is located. 
-```bash
-cd path/to/FYP---Dental-Management-System
-```
-
-### Step 3: Set up your Secret Keys
-The system needs a few secret keys to work securely (like passwords). We store these in a file called `.env`.
-1. Look for a file named `.env.example` in the project folder.
-2. Make a copy of it and rename the copy to exactly `.env`.
-3. Open the new `.env` file in any text editor (like Notepad) and fill in the values:
-   *   `SECRET_KEY`: Type any random mix of letters and numbers (e.g., `my-super-secret-key-1234`). This keeps user sessions secure.
-   *   `GEMINI_API_KEY`: Paste your Google Gemini API key here (the one that looks like `AIzaSy...`).
-   *   Save and close the file.
-
-### Step 4: Start the Application!
-Now comes the magic part. In your terminal, while inside the project folder, run the startup command:
-
-**For Windows (using PowerShell or Command Prompt):**
-```cmd
-docker-compose up --build -d
-```
-*(Or if you use newer Docker Desktop: `docker compose up --build -d`)*
-
-**For Linux:**
-```bash
-sudo docker-compose up --build -d
-```
-
-**What is happening?**
-Docker is reading the instructions we created and is automatically downloading Python, Node.js, the web server, and all the required tools. It is building your application and turning it on in the background. This might take a few minutes the first time.
-
-### Step 5: Access Your Live Application
-Once the terminal finishes and gives you control back, your application is officially running!
-*   Open your web browser (Chrome, Safari, Edge, etc.).
-*   Type `http://localhost` into the address bar and press Enter.
-*   You should now see the login page of your Dental Management System!
-
-### Step 6: How to Stop the Application
-If you ever need to turn the system off, simply go back to your terminal, make sure you are in the project folder, and type:
-
-**For Windows:**
-```cmd
-docker-compose down
-```
-
-**For Linux:**
-```bash
-sudo docker-compose down
-```
-
-This safely shuts down the application. Don't worry, your data (like patient records and uploaded files) is saved automatically in the `data` and `backend/uploads` folders, so nothing will be lost when you start it up again!
+| Type | Medication | Dosage / Form |
+| :--- | :--- | :--- |
+| **Antibiotics** | Augmentin | 625mg / 1g |
+| **Antibiotics** | Velocef / Vibramycin | 500mg / 100mg |
+| **Pain Relief** | Panadol / Ansaid | 100mg |
+| **Muscle Relaxants** | Movax | 2mg |
+| **Gastric Support** | Risek | 40mg |
+| **Topical** | Dicloran / Removate | Gel |
+| **Oral Hygiene** | Enziclor | Mouthwash / Gel |
+| **Other** | Tegral / Gabika / Flagyl | 200mg / 50mg / 400mg |
+| **Supplements** | Ca-C 1000 | Effervescent |
 
 ---
 
-## License
+## 📐 Architecture Diagram
 
-Proprietary / Internal use.
+```mermaid
+graph TD
+    User((User)) -->|React UI| Frontend[Vite Frontend]
+    Frontend -->|REST API| Backend[Flask API]
+    Backend -->|Auth| AuthBP[Auth/User Routes]
+    Backend -->|Clinical| MasterAgent[Master Agent]
+    
+    MasterAgent --> DocumentAgent[Document Agent]
+    MasterAgent --> VitalsAgent[Vitals Agent]
+    MasterAgent --> TeethAgent[Teeth Agent]
+    MasterAgent --> ChatAgent[Gemini Chat Agent]
+    
+    Backend -->|ORM| DB[(SQLite Database)]
+    Backend -->|Storage| FileSystem[Uploads/Images]
+    ChatAgent -->|LLM| Gemini[[Google Gemini AI]]
+```
+
+---
+
+## 🚀 Getting Started
+
+### Option A: Deployment using Docker (Recommended)
+1.  **Configure environment**: Copy `.env.example` to `.env`.
+2.  **Launch**: `docker-compose up --build -d`
+3.  **Access**: Open `http://localhost`.
+
+### Option B: Manual Setup
+- **Backend**: `pip install -r requirements.txt && python app.py`
+- **Frontend**: `npm install && npm run dev`
+
+---
+
+## 📄 License
+Proprietary / Internal use for Final Year Project (FYP).
+
+Developed with ❤️ for the Dental Community.
