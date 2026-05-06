@@ -1,6 +1,6 @@
-# 🦷 DentaFlow Pro — Dental Management System (FYP)
+# 🦷 Dentrixa AI — Dental Management System (FYP)
 
-![DentaFlow Pro Hero](/home/khizer/.gemini/antigravity/brain/c85257d3-8358-4afc-8d00-b1398217ca8e/dental_management_system_hero_1777789498504.png)
+
 
 > **Next-Generation Clinical Assistant & Practice Management System**
 >

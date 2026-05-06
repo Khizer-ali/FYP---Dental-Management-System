@@ -26,8 +26,14 @@ function AppointmentsPage() {
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
+    const currentUser = (() => {
+        try { return JSON.parse(window.localStorage.getItem('authUser')); } catch { return null; }
+    })();
+    const isDoctor = currentUser?.role === 'doctor';
+
     useEffect(() => {
-        fetch(`${API_BASE}/appointments`)
+        const url = isDoctor ? `${API_BASE}/appointments?doctor_id=${currentUser.id}` : `${API_BASE}/appointments`;
+        fetch(url)
             .then(r => r.ok ? r.json() : [])
             .then(data => { setAppointments(data); setLoading(false); })
             .catch(() => setLoading(false));

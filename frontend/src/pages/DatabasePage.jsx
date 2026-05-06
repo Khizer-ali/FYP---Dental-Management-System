@@ -15,6 +15,7 @@ function DatabasePage() {
     })();
     const isAdmin = currentUser?.role === 'admin';
 
+    const isDoctor = currentUser?.role === 'doctor';
 
     const showMessage = (text, type) => {
         setMessage({ text, type });
@@ -23,7 +24,8 @@ function DatabasePage() {
 
     const loadPatients = async () => {
         try {
-            const response = await fetch(`${API_BASE}/patients`);
+            const url = isDoctor ? `${API_BASE}/patients?doctor_id=${currentUser.id}` : `${API_BASE}/patients`;
+            const response = await fetch(url);
             const data = await response.json();
             setPatients(data);
             setLoading(false);

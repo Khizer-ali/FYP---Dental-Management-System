@@ -178,6 +178,7 @@ function Dashboard() {
   const [trendData, setTrendData] = useState([]);
   const [trendRange, setTrendRange] = useState(30);
   const [appointments, setAppointments] = useState([]);
+  const [doctorStats, setDoctorStats] = useState([]);
   const [message, setMessage] = useState({ text: '', type: '' });
   const [formData, setFormData] = useState({ name: '', cnic: '', phone_number: '' });
   const navigate = useNavigate();
@@ -187,6 +188,9 @@ function Dashboard() {
   })();
   const isLoggedIn = !!window.localStorage.getItem('authToken') && !!currentUser;
 
+  const isDoctor = currentUser?.role === 'doctor';
+  const isAdmin = currentUser?.role === 'admin';
+
   const [time, setTime] = useState(new Date());
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 60000);
@@ -195,7 +199,8 @@ function Dashboard() {
 
   const fetchPatients = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/patients`);
+      const url = isDoctor ? `${API_BASE}/patients?doctor_id=${currentUser.id}` : `${API_BASE}/patients`;
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         setTotalPatients(data.length);
@@ -203,11 +208,14 @@ function Dashboard() {
     } catch (err) {
       console.error('Failed to fetch patients', err);
     }
-  }, []);
+  }, [isDoctor, currentUser]);
 
   const fetchTrends = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/analytics/patient-trends?days=${trendRange}`);
+      const url = isDoctor 
+        ? `${API_BASE}/analytics/patient-trends?days=${trendRange}&doctor_id=${currentUser.id}`
+        : `${API_BASE}/analytics/patient-trends?days=${trendRange}`;
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         setTrendData(data);
@@ -215,11 +223,12 @@ function Dashboard() {
     } catch (err) {
       console.error('Failed to fetch trends', err);
     }
-  }, [trendRange]);
+  }, [trendRange, isDoctor, currentUser]);
 
   const fetchAllAppointments = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/appointments`);
+      const url = isDoctor ? `${API_BASE}/appointments?doctor_id=${currentUser.id}` : `${API_BASE}/appointments`;
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         setAppointments(data);
@@ -227,20 +236,39 @@ function Dashboard() {
     } catch (err) {
       console.error('Failed to fetch appointments', err);
     }
-  }, []);
+  }, [isDoctor, currentUser]);
+
+  const fetchDoctorStats = useCallback(async () => {
+    try {
+      if (isAdmin) {
+        const res = await fetch(`${API_BASE}/analytics/doctor-stats`);
+        if (res.ok) {
+          const data = await res.json();
+          setDoctorStats(data);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch doctor stats', err);
+    }
+  }, [isAdmin]);
 
   useEffect(() => { fetchPatients(); }, [fetchPatients, message]);
   useEffect(() => { fetchTrends(); }, [fetchTrends]);
   useEffect(() => { fetchAllAppointments(); }, [fetchAllAppointments]);
+  useEffect(() => { fetchDoctorStats(); }, [fetchDoctorStats, message]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
+      const payload = { ...formData };
+      if (isDoctor) {
+        payload.doctor_id = currentUser.id;
+      }
       const response = await fetch(`${API_BASE}/patients`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
       const result = await response.json();
       if (response.ok) {
@@ -389,10 +417,41 @@ function Dashboard() {
                 )}
               </>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8', textAlign: 'center' }}>
-                <div style={{ fontSize: '40px', marginBottom: '10px', opacity: 0.5 }}>👨‍⚕️</div>
-                <h3 style={{ margin: '0 0 5px 0', color: 'white' }}>Doctor Access Required</h3>
-                <p style={{ margin: 0, fontSize: '13px' }}>Only doctors can register new patients.</p>
+              <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                <div className="card-title">👥 PATIENT MANAGEMENT</div>
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '8px', letterSpacing: '0.5px' }}>RECENT ACTIVITY</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '14px', color: '#e2e8f0' }}>
+                    <span>Total Patients</span>
+                    <span style={{ color: '#22c55e', fontWeight: '600' }}>{totalPatients}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#e2e8f0' }}>
+                    <span>New in 30 days</span>
+                    <span style={{ color: '#3b82f6', fontWeight: '600' }}>{totalRegistrationsInRange}</span>
+                  </div>
+                </div>
+                
+                <div style={{ flex: 1, overflowY: 'auto' }}>
+                  <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '8px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>PATIENTS BY DOCTOR</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {doctorStats.map(doc => (
+                      <div key={doc.id} style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(15, 23, 42, 0.4)', padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', alignItems: 'center' }}>
+                        <span style={{ color: '#e2e8f0', fontSize: '13px', fontWeight: '500' }}>DR. {doc.name.replace(/^Dr\.\s*/i, '')}</span>
+                        <span style={{ color: '#22c55e', fontWeight: 'bold', fontSize: '14px' }}>{doc.patient_count}</span>
+                      </div>
+                    ))}
+                    {doctorStats.length === 0 && (
+                      <div style={{ textAlign: 'center', padding: '10px', color: '#64748b', fontSize: '12px' }}>No doctors found.</div>
+                    )}
+                  </div>
+                </div>
+                <button 
+                  className="dark-btn" 
+                  style={{ marginTop: 'auto', width: '100%', background: '#3b82f6', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}
+                  onClick={() => navigate('/database')}
+                >
+                  📄 MANAGE PATIENTS
+                </button>
               </div>
             )}
           </div>

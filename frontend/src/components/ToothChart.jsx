@@ -297,13 +297,13 @@ const ToothChart = ({ patientId, initialTeethData = {} }) => {
         return (
             <div className="arch-row maxilla">
                 <div className="arch-label">Maxilla</div>
-                {renderToothGroup('', [18, 17, 16], 'top', 'maxilla')}
-                {renderToothGroup('', [15, 14], 'top', 'maxilla')}
-                {renderToothGroup('', [13], 'top', 'maxilla')}
-                {renderToothGroup('', [12, 11, 21, 22], 'top', 'maxilla')}
-                {renderToothGroup('', [23], 'top', 'maxilla')}
-                {renderToothGroup('', [24, 25], 'top', 'maxilla')}
-                {renderToothGroup('', [26, 27, 28], 'top', 'maxilla')}
+                {renderToothGroup('UR Molar', [18, 17, 16], 'top', 'maxilla')}
+                {renderToothGroup('UR Premolar', [15, 14], 'top', 'maxilla')}
+                {renderToothGroup('UR Canine', [13], 'top', 'maxilla')}
+                {renderToothGroup('Anterior', [12, 11, 21, 22], 'top', 'maxilla')}
+                {renderToothGroup('UL Canine', [23], 'top', 'maxilla')}
+                {renderToothGroup('UL Premolar', [24, 25], 'top', 'maxilla')}
+                {renderToothGroup('UL Molar', [26, 27, 28], 'top', 'maxilla')}
             </div>
         );
     };
@@ -312,13 +312,13 @@ const ToothChart = ({ patientId, initialTeethData = {} }) => {
         return (
             <div className="arch-row mandible">
                 <div className="arch-label">Mandible</div>
-                {renderToothGroup('', [48, 47, 46], 'bottom', 'mandible')}
-                {renderToothGroup('', [45, 44], 'bottom', 'mandible')}
-                {renderToothGroup('', [43], 'bottom', 'mandible')}
-                {renderToothGroup('', [42, 41, 31, 32], 'bottom', 'mandible')}
-                {renderToothGroup('', [33], 'bottom', 'mandible')}
-                {renderToothGroup('', [34, 35], 'bottom', 'mandible')}
-                {renderToothGroup('', [36, 37, 38], 'bottom', 'mandible')}
+                {renderToothGroup('LR Molar', [48, 47, 46], 'bottom', 'mandible')}
+                {renderToothGroup('LR Premolar', [45, 44], 'bottom', 'mandible')}
+                {renderToothGroup('LR Canine', [43], 'bottom', 'mandible')}
+                {renderToothGroup('Lower Anterior', [42, 41, 31, 32], 'bottom', 'mandible')}
+                {renderToothGroup('LL Canine', [33], 'bottom', 'mandible')}
+                {renderToothGroup('LL Premolar', [34, 35], 'bottom', 'mandible')}
+                {renderToothGroup('LL Molar', [36, 37, 38], 'bottom', 'mandible')}
             </div>
         );
     };

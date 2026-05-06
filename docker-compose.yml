@@ -9,6 +9,7 @@ services:
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - DATABASE_URL=sqlite:////app/data/clinical_assistant.db
+      - CHOKIDAR_USEPOLLING=true
     volumes:
       - ./data:/app/data
       - ./backend/uploads:/app/uploads

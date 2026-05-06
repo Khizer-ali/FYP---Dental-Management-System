@@ -8,7 +8,7 @@ class TeethAgent:
     
     def __init__(self):
         self.allowed_conditions = {'root', 'cavity', 'both', 'healthy', 'decay', 'filling', 'crown', 'missing', 'root_canal'}
-        self.valid_tooth_ids = {f"t{i}" for i in range(1, 33)}
+        self.valid_tooth_ids = {f"t{q}{i}" for q in [1, 2, 3, 4] for i in range(1, 9)}
     
     def _normalize_condition(self, condition: str) -> str:
         """Normalize and validate condition strings."""

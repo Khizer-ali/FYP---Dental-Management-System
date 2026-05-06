@@ -91,7 +91,17 @@ function PatientDetails() {
           fetch(`${API_BASE}/patients/${patientId}/appointments`)
         ]);
 
-        if (patientRes.ok) setPatientData(await patientRes.json());
+        if (patientRes.ok) {
+          const pData = await patientRes.json();
+          const currentUser = (() => {
+            try { return JSON.parse(window.localStorage.getItem('authUser')); } catch { return null; }
+          })();
+          if (currentUser?.role === 'doctor' && pData.doctor_id !== currentUser.id) {
+            navigate('/database');
+            return;
+          }
+          setPatientData(pData);
+        }
         if (docsRes.ok) setDocuments(await docsRes.json());
         if (vitalsRes.ok) setVitals(await vitalsRes.json());
         if (familyRes.ok) setFamilyHistory(await familyRes.json());
@@ -201,11 +211,23 @@ function PatientDetails() {
 
   const loadDocuments = async () => {
     try {
-      const response = await fetch(`${API_BASE}/patients/${patientId}/documents`);
-      const data = await response.json();
-      setDocuments(data);
+      const [docsRes, imagesRes] = await Promise.all([
+        fetch(`${API_BASE}/patients/${patientId}/documents`),
+        fetch(`${API_BASE}/patients/${patientId}/images`)
+      ]);
+      
+      const docsData = await docsRes.json();
+      const imagesData = await imagesRes.json();
+      
+      // Tag them and combine
+      const combined = [
+        ...docsData.map(d => ({ ...d, itemType: 'document' })),
+        ...imagesData.map(i => ({ ...i, itemType: 'image' }))
+      ].sort((a, b) => new Date(b.uploaded_at || b.recorded_at) - new Date(a.uploaded_at || a.recorded_at));
+      
+      setDocuments(combined);
     } catch (error) {
-      console.error('Error loading documents:', error);
+      console.error('Error loading documents/images:', error);
     }
   };
 
@@ -837,9 +859,6 @@ function PatientDetails() {
           <button className={`tab ${activeTab === 'family' ? 'active' : ''}`} onClick={() => setActiveTab('family')}>
             👨‍👩‍👧‍👦 Family History
           </button>
-          <button className={`tab ${activeTab === 'images' ? 'active' : ''}`} onClick={() => setActiveTab('images')}>
-            🖼️ RI
-          </button>
           <button className={`tab ${activeTab === 'dental' ? 'active' : ''}`} onClick={() => setActiveTab('dental')}>
             🦷 Tooth Chart
           </button>
@@ -895,18 +914,58 @@ function PatientDetails() {
             </div>
             <div className="data-list" id="documentsList">
               {documents.length === 0 ? (
-                <p>No documents uploaded yet.</p>
+                <p>No documents or images uploaded yet.</p>
               ) : (
-                documents.map(doc => (
-                  <div key={doc.id} className="data-item">
-                    <h4>{doc.filename}</h4>
-                    <p><strong>Type:</strong> {doc.document_type || 'N/A'}</p>
-                    <p><strong>Uploaded:</strong> {new Date(doc.uploaded_at).toLocaleString()}</p>
-                    {doc.parsed_text && (
-                      <p><strong>Extracted Text:</strong> {doc.parsed_text.substring(0, 200)}...</p>
-                    )}
-                  </div>
-                ))
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+                  {documents.map(doc => (
+                    <div key={`${doc.itemType}-${doc.id}`} className="data-item" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                      <div style={{ display: 'flex', gap: '15px' }}>
+                        {doc.itemType === 'image' || (doc.filename && doc.filename.match(/\.(jpg|jpeg|png|gif)$/i)) ? (
+                          <div style={{ width: '80px', height: '80px', flexShrink: 0, borderRadius: '4px', overflow: 'hidden', border: '1px solid #eee' }}>
+                            <img 
+                              src={`${API_BASE.replace('/api', '')}/uploads/${doc.itemType === 'image' ? 'images' : 'documents'}/${doc.filename}`} 
+                              alt="Preview" 
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                          </div>
+                        ) : (
+                          <div style={{ width: '80px', height: '80px', flexShrink: 0, borderRadius: '4px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyCenter: 'center', fontSize: '24px' }}>
+                            📄
+                          </div>
+                        )}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <h4 style={{ margin: '0 0 5px 0', fontSize: '16px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.filename}</h4>
+                          <p style={{ margin: '0 0 5px 0', fontSize: '13px' }}><strong>Type:</strong> {doc.document_type || doc.image_type || 'N/A'}</p>
+                          <p style={{ margin: '0', fontSize: '12px', color: '#64748b' }}>{new Date(doc.uploaded_at).toLocaleString()}</p>
+                        </div>
+                      </div>
+                      
+                      {doc.parsed_text && (
+                        <p style={{ marginTop: '10px', fontSize: '13px', color: '#475569', background: '#f8fafc', padding: '8px', borderRadius: '4px' }}>
+                          <strong>Extracted Text:</strong> {doc.parsed_text.substring(0, 100)}...
+                        </p>
+                      )}
+                      
+                      {doc.description && (
+                        <p style={{ marginTop: '10px', fontSize: '13px', color: '#475569' }}>
+                          <strong>Description:</strong> {doc.description}
+                        </p>
+                      )}
+                      
+                      <div style={{ marginTop: 'auto', paddingTop: '15px', display: 'flex', gap: '10px' }}>
+                        <a 
+                          href={`${API_BASE.replace('/api', '')}/uploads/${doc.itemType === 'image' ? 'images' : 'documents'}/${doc.filename}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="btn btn-secondary"
+                          style={{ fontSize: '12px', padding: '5px 10px' }}
+                        >
+                          👁️ View Full File
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>
@@ -1038,70 +1097,6 @@ function PatientDetails() {
                     {fh.age_of_onset && <p><strong>Age of Onset:</strong> {fh.age_of_onset} years</p>}
                     {fh.notes && <p><strong>Notes:</strong> {fh.notes}</p>}
                     <p><strong>Recorded:</strong> {new Date(fh.recorded_at).toLocaleString()}</p>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Images Tab */}
-        {activeTab === 'images' && (
-          <div id="images" className="tab-content active">
-            <div className="form-section">
-              <h3>Upload Medical Image</h3>
-              <form id="imageForm" onSubmit={handleImageSubmit} encType="multipart/form-data">
-                <div className="form-group">
-                  <label htmlFor="imageFile">Select Image (PNG, JPG, JPEG, DICOM)</label>
-                  <input
-                    type="file"
-                    id="imageFile"
-                    name="file"
-                    accept=".png,.jpg,.jpeg,.dicom,.dcm"
-                    required
-                    onChange={(e) => setImageForm({ ...imageForm, file: e.target.files[0] })}
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="imageType">Image Type</label>
-                  <input
-                    type="text"
-                    id="imageType"
-                    name="image_type"
-                    placeholder="e.g., X-Ray, CT Scan, MRI"
-                    value={imageForm.image_type}
-                    onChange={(e) => setImageForm({ ...imageForm, image_type: e.target.value })}
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="imageDescription">Description</label>
-                  <textarea
-                    id="imageDescription"
-                    name="description"
-                    rows="3"
-                    placeholder="Describe the image..."
-                    value={imageForm.description}
-                    onChange={(e) => setImageForm({ ...imageForm, description: e.target.value })}
-                  ></textarea>
-                </div>
-                <button type="submit" className="btn-primary">Upload Image</button>
-              </form>
-              {messages.imageMessage && (
-                <div id="imageMessage" className={`message ${messages.imageMessage.type}`}>
-                  {messages.imageMessage.text}
-                </div>
-              )}
-            </div>
-            <div className="data-list" id="imagesList">
-              {images.length === 0 ? (
-                <p>No images uploaded yet.</p>
-              ) : (
-                images.map(img => (
-                  <div key={img.id} className="data-item">
-                    <h4>{img.filename}</h4>
-                    <p><strong>Type:</strong> {img.image_type || 'N/A'}</p>
-                    {img.description && <p><strong>Description:</strong> {img.description}</p>}
-                    <p><strong>Uploaded:</strong> {new Date(img.uploaded_at).toLocaleString()}</p>
                   </div>
                 ))
               )}
