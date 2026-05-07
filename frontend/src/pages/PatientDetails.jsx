@@ -8,6 +8,14 @@ import { SERVICE_CATALOG } from '../constants/serviceCatalog';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
+const MEDICINES_LIST = [
+  'Somogel', 'Tab Augmentin 625mg', 'Tab Augmentin 1g', 'Tab velocef 500 mg',
+  'Tab panadol 100mg ', 'Tab Ansaid 100mg ', 'Tab Movax 2mg ', 'Cap Risek 40mg ',
+  'Dicloran gel', 'Enziclor mouthwash', 'Laxatonil 0.5mg', 'Cap vibramycin 100mg',
+  'Tab tegral 200mg', 'Tab gabika 50 mg', 'Ca-C 1000', 'Removate gel',
+  'Enziclor gel', 'Tab benzen -ds', 'Tab flagyl 400mg'
+];
+
 function PatientDetails() {
   const { patientId } = useParams();
   const navigate = useNavigate();
@@ -194,7 +202,12 @@ function PatientDetails() {
         body: formData
       });
 
-      const result = await response.json();
+      let result;
+      try {
+        result = await response.json();
+      } catch (e) {
+        result = { error: 'Server returned an invalid response. Please check if the server is running.' };
+      }
 
       if (response.ok) {
         showMessage('documentMessage', 'Document uploaded and parsed successfully!', 'success');
@@ -215,16 +228,16 @@ function PatientDetails() {
         fetch(`${API_BASE}/patients/${patientId}/documents`),
         fetch(`${API_BASE}/patients/${patientId}/images`)
       ]);
-      
+
       const docsData = await docsRes.json();
       const imagesData = await imagesRes.json();
-      
+
       // Tag them and combine
       const combined = [
         ...docsData.map(d => ({ ...d, itemType: 'document' })),
         ...imagesData.map(i => ({ ...i, itemType: 'image' }))
       ].sort((a, b) => new Date(b.uploaded_at || b.recorded_at) - new Date(a.uploaded_at || a.recorded_at));
-      
+
       setDocuments(combined);
     } catch (error) {
       console.error('Error loading documents/images:', error);
@@ -245,7 +258,12 @@ function PatientDetails() {
         body: JSON.stringify(formData)
       });
 
-      const result = await response.json();
+      let result;
+      try {
+        result = await response.json();
+      } catch (e) {
+        result = { error: 'Server returned an invalid response.' };
+      }
 
       if (response.ok) {
         showMessage('vitalsMessage', 'Vitals recorded successfully!', 'success');
@@ -283,7 +301,12 @@ function PatientDetails() {
         body: JSON.stringify(formData)
       });
 
-      const result = await response.json();
+      let result;
+      try {
+        result = await response.json();
+      } catch (e) {
+        result = { error: 'Server returned an invalid response.' };
+      }
 
       if (response.ok) {
         showMessage('familyMessage', 'Family history added successfully!', 'success');
@@ -321,7 +344,12 @@ function PatientDetails() {
         body: formData
       });
 
-      const result = await response.json();
+      let result;
+      try {
+        result = await response.json();
+      } catch (e) {
+        result = { error: 'Server returned an invalid response.' };
+      }
 
       if (response.ok) {
         showMessage('imageMessage', 'Image uploaded successfully!', 'success');
@@ -479,7 +507,12 @@ function PatientDetails() {
         body: JSON.stringify(payload)
       });
 
-      const result = await response.json();
+      let result;
+      try {
+        result = await response.json();
+      } catch (e) {
+        result = { error: 'Server returned an invalid response.' };
+      }
 
       if (response.ok) {
         showMessage('billingMessage', 'Bill saved successfully!', 'success');
@@ -552,7 +585,7 @@ function PatientDetails() {
       return;
     }
 
-    const match = ['Option 1', 'Option 2', 'Option 3'].find(s => s === selectedName);
+    const match = MEDICINES_LIST.find(s => s === selectedName);
     setMedicineServices(prev =>
       prev.map(s =>
         s.id === id
@@ -579,7 +612,7 @@ function PatientDetails() {
     const validItems = totals.items.filter(item => item.name.trim() !== '');
 
     if (validItems.length === 0) {
-      showMessage('medicineingMessage', 'Please add at least one service to the medicine.', 'error');
+      showMessage('medicineMessage', 'Please add at least one service to the medicine.', 'error');
       return;
     }
 
@@ -597,7 +630,7 @@ function PatientDetails() {
       payment_method: medicineDetails.payment_method,
       payment_datetime: medicineDetails.payment_datetime,
       items: validItems.map(item => ({
-        service_name: item.name,
+        medicine_name: item.name,
         quantity: item.qty,
         price: item.price,
         total: item.total
@@ -613,10 +646,15 @@ function PatientDetails() {
         body: JSON.stringify(payload)
       });
 
-      const result = await response.json();
+      let result;
+      try {
+        result = await response.json();
+      } catch (e) {
+        result = { error: 'Server returned an invalid response.' };
+      }
 
       if (response.ok) {
-        showMessage('medicineingMessage', 'Medicine saved successfully!', 'success');
+        showMessage('medicineMessage', 'Medicine saved successfully!', 'success');
         // Reset form
         setMedicineServices([{ id: Date.now(), name: '', qty: 1, price: 0, total: 0 }]);
         setMedicineDetails(prev => ({
@@ -922,9 +960,9 @@ function PatientDetails() {
                       <div style={{ display: 'flex', gap: '15px' }}>
                         {doc.itemType === 'image' || (doc.filename && doc.filename.match(/\.(jpg|jpeg|png|gif)$/i)) ? (
                           <div style={{ width: '80px', height: '80px', flexShrink: 0, borderRadius: '4px', overflow: 'hidden', border: '1px solid #eee' }}>
-                            <img 
-                              src={`${API_BASE.replace('/api', '')}/uploads/${doc.itemType === 'image' ? 'images' : 'documents'}/${doc.filename}`} 
-                              alt="Preview" 
+                            <img
+                              src={`${API_BASE.replace('/api', '')}/uploads/${doc.itemType === 'image' ? 'images' : 'documents'}/${doc.filename}`}
+                              alt="Preview"
                               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                             />
                           </div>
@@ -939,23 +977,23 @@ function PatientDetails() {
                           <p style={{ margin: '0', fontSize: '12px', color: '#64748b' }}>{new Date(doc.uploaded_at).toLocaleString()}</p>
                         </div>
                       </div>
-                      
+
                       {doc.parsed_text && (
                         <p style={{ marginTop: '10px', fontSize: '13px', color: '#475569', background: '#f8fafc', padding: '8px', borderRadius: '4px' }}>
                           <strong>Extracted Text:</strong> {doc.parsed_text.substring(0, 100)}...
                         </p>
                       )}
-                      
+
                       {doc.description && (
                         <p style={{ marginTop: '10px', fontSize: '13px', color: '#475569' }}>
                           <strong>Description:</strong> {doc.description}
                         </p>
                       )}
-                      
+
                       <div style={{ marginTop: 'auto', paddingTop: '15px', display: 'flex', gap: '10px' }}>
-                        <a 
-                          href={`${API_BASE.replace('/api', '')}/uploads/${doc.itemType === 'image' ? 'images' : 'documents'}/${doc.filename}`} 
-                          target="_blank" 
+                        <a
+                          href={`${API_BASE.replace('/api', '')}/uploads/${doc.itemType === 'image' ? 'images' : 'documents'}/${doc.filename}`}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="btn btn-secondary"
                           style={{ fontSize: '12px', padding: '5px 10px' }}
@@ -1489,13 +1527,13 @@ function PatientDetails() {
                               value={
                                 service.isCustom
                                   ? '__custom__'
-                                  : (['Option 1', 'Option 2', 'Option 3'].includes(service.name) ? service.name : '')
+                                  : (MEDICINES_LIST.includes(service.name) ? service.name : '')
                               }
                               onChange={(e) => handleSelectMedicineService(service.id, e.target.value)}
                               style={{ width: '100%' }}
                             >
-                              <option value="">Select procedure</option>
-                              {['Somogel', 'Tab Augmentin 625mg', 'Tab Augmentin 1g', 'Tab velocef 500 mg', 'Tab panadol 100mg ', 'Tab Ansaid 100mg ', 'Tab Movax 2mg ', 'Cap Risek 40mg ', 'Dicloran gel', 'Enziclor mouthwash', 'Laxatonil 0.5mg', 'Cap vibramycin 100mg', 'Tab tegral 200mg', 'Tab gabika 50 mg', 'Ca-C 1000', 'Removate gel', 'Enziclor gel', 'Tab benzen -ds', 'Tab flagyl 400mg'].map((s) => (
+                              <option value="">Select medicine</option>
+                              {MEDICINES_LIST.map((s) => (
                                 <option key={s} value={s}>
                                   {s}
                                 </option>
@@ -1508,7 +1546,7 @@ function PatientDetails() {
                                 type="text"
                                 value={service.name}
                                 onChange={(e) => handleMedicineServiceChange(service.id, 'name', e.target.value)}
-                                placeholder="Custom procedure"
+                                placeholder="Custom medicine"
                               />
                             )}
                           </div>
