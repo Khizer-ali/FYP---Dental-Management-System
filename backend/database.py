@@ -320,6 +320,8 @@ class PrescriptionItem(db.Model):
     prescription_id = db.Column(db.Integer, db.ForeignKey('prescriptions.id'), nullable=False)
     medicine_name = db.Column(db.String(255), nullable=False)
     quantity = db.Column(db.Integer, default=1)
+    dosage = db.Column(db.String(255))
+    duration = db.Column(db.String(255))
     price = db.Column(db.Float, default=0.0)
     total = db.Column(db.Float, default=0.0)
     
@@ -328,6 +330,8 @@ class PrescriptionItem(db.Model):
             'id': self.id,
             'prescription_id': self.prescription_id,
             'medicine_name': self.medicine_name,
+            'dosage': self.dosage,
+            'duration': self.duration,
             'price': self.price,
             'total': self.total
         }

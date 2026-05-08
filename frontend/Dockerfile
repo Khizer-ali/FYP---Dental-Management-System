@@ -9,12 +9,15 @@ RUN npm ci
 COPY . .
 
 # Install build-time dependencies (only if needed for 'npm run build')
-RUN apk add --no-cache \
+# 1. Update repositories and 2. Install dependencies
+RUN apk update && apk add --no-cache \
     tesseract-ocr \
     tesseract-ocr-dev \
+    leptonica-dev \
     poppler-utils \
     mesa-gl \
-    glib
+    glib \
+    build-base
 
 # Build the app
 RUN npm run build

@@ -207,6 +207,21 @@ def get_documents(patient_id):
     patient = Patient.query.get_or_404(patient_id)
     return jsonify([doc.to_dict() for doc in patient.documents])
 
+@app.route('/api/documents/<int:doc_id>', methods=['DELETE'])
+def delete_document(doc_id):
+    """Delete a medical document"""
+    doc = Document.query.get_or_404(doc_id)
+    try:
+        # Also remove the file from filesystem
+        if os.path.exists(doc.file_path):
+            os.remove(doc.file_path)
+        db.session.delete(doc)
+        db.session.commit()
+        return jsonify({'message': 'Document deleted successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 # Vitals Agent Routes
 @app.route('/api/patients/<int:patient_id>/vitals', methods=['POST'])
 def add_vitals(patient_id):
@@ -327,6 +342,21 @@ def get_images(patient_id):
     patient = Patient.query.get_or_404(patient_id)
     return jsonify([img.to_dict() for img in patient.images])
 
+@app.route('/api/images/<int:image_id>', methods=['DELETE'])
+def delete_image(image_id):
+    """Delete a medical image"""
+    img = MedicalImage.query.get_or_404(image_id)
+    try:
+        # Also remove the file from filesystem
+        if os.path.exists(img.file_path):
+            os.remove(img.file_path)
+        db.session.delete(img)
+        db.session.commit()
+        return jsonify({'message': 'Image deleted successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 # Teeth Agent Routes
 @app.route('/api/patients/<int:patient_id>/teeth', methods=['GET'])
 def get_teeth(patient_id):
@@ -408,6 +438,46 @@ def create_bill():
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
 
+@app.route('/api/bills/<int:bill_id>', methods=['PUT'])
+def update_bill(bill_id):
+    """Update an existing bill"""
+    bill = Bill.query.get_or_404(bill_id)
+    data = request.json
+    
+    try:
+        bill.staff_name = data.get('staff_name', bill.staff_name)
+        bill.appointment_date = data.get('appointment_date', bill.appointment_date)
+        bill.date = data.get('date', bill.date)
+        bill.subtotal = float(data.get('subtotal', bill.subtotal))
+        bill.discount_percent = float(data.get('discount_percent', bill.discount_percent))
+        bill.discount_amount = float(data.get('discount_amount', bill.discount_amount))
+        bill.outstanding_amount = float(data.get('outstanding_amount', bill.outstanding_amount))
+        bill.grand_total = float(data.get('grand_total', bill.grand_total))
+        bill.payment_method = data.get('payment_method', bill.payment_method)
+        bill.payment_datetime = data.get('payment_datetime', bill.payment_datetime)
+        
+        # Update items
+        if 'items' in data:
+            # Simple approach: delete existing items and add new ones
+            for item in bill.items:
+                db.session.delete(item)
+            
+            for item_data in data['items']:
+                item = BillItem(
+                    bill_id=bill.id,
+                    service_name=item_data.get('service_name', ''),
+                    quantity=int(item_data.get('quantity', 1)),
+                    price=float(item_data.get('price', 0)),
+                    total=float(item_data.get('total', 0))
+                )
+                db.session.add(item)
+        
+        db.session.commit()
+        return jsonify(bill.to_dict()), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
 @app.route('/api/prescriptions', methods=['POST'])
 def create_prescription():
     """Create a new prescription invoice"""
@@ -441,6 +511,8 @@ def create_prescription():
                 prescription_id=prescription.id,
                 medicine_name=item_data.get('medicine_name', ''),
                 quantity=int(item_data.get('quantity', 1)),
+                dosage=item_data.get('dosage', ''),
+                duration=item_data.get('duration', ''),
                 price=float(item_data.get('price', 0)),
                 total=float(item_data.get('total', 0))
             )
@@ -448,6 +520,48 @@ def create_prescription():
             
         db.session.commit()
         return jsonify(prescription.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/prescriptions/<int:prescription_id>', methods=['PUT'])
+def update_prescription(prescription_id):
+    """Update an existing prescription"""
+    prescription = Prescription.query.get_or_404(prescription_id)
+    data = request.json
+    
+    try:
+        prescription.staff_name = data.get('staff_name', prescription.staff_name)
+        prescription.appointment_date = data.get('appointment_date', prescription.appointment_date)
+        prescription.date = data.get('date', prescription.date)
+        prescription.subtotal = float(data.get('subtotal', prescription.subtotal))
+        prescription.discount_percent = float(data.get('discount_percent', prescription.discount_percent))
+        prescription.discount_amount = float(data.get('discount_amount', prescription.discount_amount))
+        prescription.outstanding_amount = float(data.get('outstanding_amount', prescription.outstanding_amount))
+        prescription.grand_total = float(data.get('grand_total', prescription.grand_total))
+        prescription.payment_method = data.get('payment_method', prescription.payment_method)
+        prescription.payment_datetime = data.get('payment_datetime', prescription.payment_datetime)
+        
+        # Update items
+        if 'items' in data:
+            # Delete existing items and add new ones
+            for item in prescription.items:
+                db.session.delete(item)
+            
+            for item_data in data['items']:
+                item = PrescriptionItem(
+                    prescription_id=prescription.id,
+                    medicine_name=item_data.get('medicine_name', ''),
+                    quantity=int(item_data.get('quantity', 1)),
+                    dosage=item_data.get('dosage', ''),
+                    duration=item_data.get('duration', ''),
+                    price=float(item_data.get('price', 0)),
+                    total=float(item_data.get('total', 0))
+                )
+                db.session.add(item)
+        
+        db.session.commit()
+        return jsonify(prescription.to_dict()), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 400

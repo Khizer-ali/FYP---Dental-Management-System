@@ -62,11 +62,12 @@ function PatientDetails() {
     payment_method: 'ONLINE BANK TRANSFER',
     payment_datetime: new Date().toUTCString().slice(0, 22)
   });
+  const [editingBillId, setEditingBillId] = useState(null);
 
   // Medicine States
   const [medicines, setMedicines] = useState([]);
   const [medicineServices, setMedicineServices] = useState([
-    { id: 1, name: '', qty: 1, price: 0, total: 0 }
+    { id: 1, name: '', qty: 1, dosage: '', duration: '', price: 0, total: 0 }
   ]);
   const [medicineDetails, setMedicineDetails] = useState({
     staff_name: '',
@@ -79,6 +80,7 @@ function PatientDetails() {
     payment_method: 'ONLINE BANK TRANSFER',
     payment_datetime: new Date().toUTCString().slice(0, 22)
   });
+  const [editingMedicineId, setEditingMedicineId] = useState(null);
 
   // Form states
   const [documentForm, setDocumentForm] = useState({ file: null, document_type: 'Medical Report' });
@@ -241,6 +243,38 @@ function PatientDetails() {
       setDocuments(combined);
     } catch (error) {
       console.error('Error loading documents/images:', error);
+    }
+  };
+
+  const handleDeleteDocument = async (docId) => {
+    if (!window.confirm('Are you sure you want to delete this document?')) return;
+    try {
+      const response = await fetch(`${API_BASE}/documents/${docId}`, { method: 'DELETE' });
+      if (response.ok) {
+        showMessage('documentMessage', 'Document deleted successfully', 'success');
+        loadDocuments();
+      } else {
+        const data = await response.json();
+        showMessage('documentMessage', data.error || 'Error deleting document', 'error');
+      }
+    } catch (error) {
+      showMessage('documentMessage', 'Network error: ' + error.message, 'error');
+    }
+  };
+
+  const handleDeleteImage = async (imageId) => {
+    if (!window.confirm('Are you sure you want to delete this image?')) return;
+    try {
+      const response = await fetch(`${API_BASE}/images/${imageId}`, { method: 'DELETE' });
+      if (response.ok) {
+        showMessage('documentMessage', 'Image deleted successfully', 'success');
+        loadDocuments();
+      } else {
+        const data = await response.json();
+        showMessage('documentMessage', data.error || 'Error deleting image', 'error');
+      }
+    } catch (error) {
+      showMessage('documentMessage', 'Network error: ' + error.message, 'error');
     }
   };
 
@@ -466,6 +500,48 @@ function PatientDetails() {
     }
   };
 
+  const handleEditBill = (bill) => {
+    setEditingBillId(bill.id);
+    setBillDetails({
+      staff_name: bill.staff_name || '',
+      invoice_number: bill.invoice_number,
+      appointment_date: bill.appointment_date || '',
+      date: bill.date || '',
+      discount_type: bill.discount_percent ? String(bill.discount_percent) : '0',
+      custom_discount: bill.discount_percent || 0,
+      outstanding_amount: bill.outstanding_amount || 0,
+      payment_method: bill.payment_method || 'ONLINE BANK TRANSFER',
+      payment_datetime: bill.payment_datetime || ''
+    });
+    setBillServices(bill.items.map(item => ({
+      id: item.id,
+      name: item.service_name,
+      qty: item.quantity,
+      price: item.price,
+      total: item.total,
+      isCustom: !SERVICE_CATALOG.some(s => s.name === item.service_name)
+    })));
+    // Scroll to form
+    const formEl = document.getElementById('billing');
+    if (formEl) formEl.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const cancelEditBill = () => {
+    setEditingBillId(null);
+    setBillServices([{ id: Date.now(), name: '', qty: 1, price: 0, total: 0 }]);
+    setBillDetails({
+      staff_name: '',
+      invoice_number: `INV-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+      appointment_date: new Date().toLocaleDateString('en-GB'),
+      date: new Date().toLocaleDateString('en-GB'),
+      discount_type: '0',
+      custom_discount: 0,
+      outstanding_amount: 0,
+      payment_method: 'ONLINE BANK TRANSFER',
+      payment_datetime: new Date().toUTCString().slice(0, 22)
+    });
+  };
+
   const saveBill = async () => {
     const totals = calculateBillTotals();
 
@@ -499,8 +575,9 @@ function PatientDetails() {
     };
 
     try {
-      const response = await fetch(`${API_BASE}/bills`, {
-        method: 'POST',
+      const url = editingBillId ? `${API_BASE}/bills/${editingBillId}` : `${API_BASE}/bills`;
+      const response = await fetch(url, {
+        method: editingBillId ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
@@ -515,13 +592,9 @@ function PatientDetails() {
       }
 
       if (response.ok) {
-        showMessage('billingMessage', 'Bill saved successfully!', 'success');
+        showMessage('billingMessage', editingBillId ? 'Bill updated successfully!' : 'Bill saved successfully!', 'success');
         // Reset form
-        setBillServices([{ id: Date.now(), name: '', qty: 1, price: 0, total: 0 }]);
-        setBillDetails(prev => ({
-          ...prev,
-          invoice_number: `INV-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`
-        }));
+        cancelEditBill();
         loadBills();
       } else {
         showMessage('billingMessage', result.error || 'Error saving bill', 'error');
@@ -596,13 +669,57 @@ function PatientDetails() {
   };
 
   const addMedicineRow = () => {
-    setMedicineServices(prev => [...prev, { id: Date.now(), name: '', qty: 1, price: 0, total: 0 }]);
+    setMedicineServices(prev => [...prev, { id: Date.now(), name: '', qty: 1, dosage: '', duration: '', price: 0, total: 0 }]);
   };
 
   const removeMedicineRow = (id) => {
     if (medicineServices.length > 1) {
       setMedicineServices(prev => prev.filter(s => s.id !== id));
     }
+  };
+
+  const handleEditMedicine = (med) => {
+    setEditingMedicineId(med.id);
+    setMedicineDetails({
+      staff_name: med.staff_name || '',
+      invoice_number: med.invoice_number,
+      appointment_date: med.appointment_date || '',
+      date: med.date || '',
+      discount_type: med.discount_percent ? String(med.discount_percent) : '0',
+      custom_discount: med.discount_percent || 0,
+      outstanding_amount: med.outstanding_amount || 0,
+      payment_method: med.payment_method || 'ONLINE BANK TRANSFER',
+      payment_datetime: med.payment_datetime || ''
+    });
+    setMedicineServices(med.items.map(item => ({
+      id: item.id,
+      name: item.medicine_name,
+      qty: item.quantity,
+      dosage: item.dosage || '',
+      duration: item.duration || '',
+      price: item.price,
+      total: item.total,
+      isCustom: !MEDICINES_LIST.includes(item.medicine_name)
+    })));
+    // Scroll to form
+    const formEl = document.getElementById('medicine');
+    if (formEl) formEl.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const cancelEditMedicine = () => {
+    setEditingMedicineId(null);
+    setMedicineServices([{ id: Date.now(), name: '', qty: 1, dosage: '', duration: '', price: 0, total: 0 }]);
+    setMedicineDetails({
+      staff_name: '',
+      invoice_number: `MED-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+      appointment_date: new Date().toLocaleDateString('en-GB'),
+      date: new Date().toLocaleDateString('en-GB'),
+      discount_type: '0',
+      custom_discount: 0,
+      outstanding_amount: 0,
+      payment_method: 'ONLINE BANK TRANSFER',
+      payment_datetime: new Date().toUTCString().slice(0, 22)
+    });
   };
 
   const saveMedicine = async () => {
@@ -632,14 +749,17 @@ function PatientDetails() {
       items: validItems.map(item => ({
         medicine_name: item.name,
         quantity: item.qty,
+        dosage: item.dosage,
+        duration: item.duration,
         price: item.price,
         total: item.total
       }))
     };
 
     try {
-      const response = await fetch(`${API_BASE}/prescriptions`, {
-        method: 'POST',
+      const url = editingMedicineId ? `${API_BASE}/prescriptions/${editingMedicineId}` : `${API_BASE}/prescriptions`;
+      const response = await fetch(url, {
+        method: editingMedicineId ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
@@ -654,13 +774,9 @@ function PatientDetails() {
       }
 
       if (response.ok) {
-        showMessage('medicineMessage', 'Medicine saved successfully!', 'success');
+        showMessage('medicineMessage', editingMedicineId ? 'Medicine updated successfully!' : 'Medicine saved successfully!', 'success');
         // Reset form
-        setMedicineServices([{ id: Date.now(), name: '', qty: 1, price: 0, total: 0 }]);
-        setMedicineDetails(prev => ({
-          ...prev,
-          invoice_number: `INV-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`
-        }));
+        cancelEditMedicine();
         loadMedicines();
       } else {
         showMessage('medicineMessage', result.error || 'Error saving medicine', 'error');
@@ -1000,6 +1116,13 @@ function PatientDetails() {
                         >
                           👁️ View Full File
                         </a>
+                        <button
+                          className="btn btn-danger"
+                          style={{ fontSize: '12px', padding: '5px 10px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                          onClick={() => doc.itemType === 'image' ? handleDeleteImage(doc.id) : handleDeleteDocument(doc.id)}
+                        >
+                          🗑️ Delete
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -1395,7 +1518,10 @@ function PatientDetails() {
               </div>
 
               <div className="invoice-controls">
-                <button className="invoice-btn invoice-save-btn" onClick={saveBill}>💾 Save</button>
+                <button className="invoice-btn invoice-save-btn" onClick={saveBill}>💾 {editingBillId ? 'Update' : 'Save'}</button>
+                {editingBillId && (
+                  <button className="invoice-btn btn-secondary" onClick={cancelEditBill} style={{ marginLeft: '10px' }}>Cancel Edit</button>
+                )}
                 <button className="invoice-btn print-btn" onClick={() => window.print()}>🖨️ Print</button>
               </div>
             </div>
@@ -1417,258 +1543,138 @@ function PatientDetails() {
                       )}
                     </p>
                     <p><strong>Items:</strong> {bill.items.length}</p>
+                    <div style={{ marginTop: '10px' }}>
+                      <button className="btn btn-secondary" onClick={() => handleEditBill(bill)} style={{ fontSize: '12px', padding: '5px 10px' }}>
+                        ✏️ Edit
+                      </button>
+                    </div>
                   </div>
                 ))
               )}
             </div>
-
           </div>
         )}
 
         {/* Medicine Tab */}
         {activeTab === 'medicine' && (
           <div id="medicine" className="tab-content active">
-
             {messages.medicineMessage && (
               <div id="medicineMessage" className={`message ${messages.medicineMessage.type}`} style={{ marginBottom: '20px' }}>
                 {messages.medicineMessage.text}
               </div>
             )}
 
-            <div className="invoice-container">
-              <div className="invoice-header">
-                <div className="invoice-logo-area">
-                  {/* You can replace this src with a real logo path if available */}
-                  <img src="https://via.placeholder.com/250x60?text=Venus+Aesthetics" alt="Venus Aesthetics" />
+            <div className="prescription-container">
+              <div className="prescription-header">
+                <div className="prescription-logo-section">
+                  <div style={{ fontSize: '40px' }}>🦷</div>
+                  <h1>FYP DENTAL<br />MANAGEMENT SYSTEM</h1>
                 </div>
-                <div className="invoice-header-text">
-                  <h1>Invoice</h1>
-                  <input type="text" className="invoice-subtitle" defaultValue="Venus Aesthetics Islamabad F7" />
+                <div className="prescription-contact-info">
+                  <h3>ISLAMABAD DENTAL CARE</h3>
+                  <p>20 Rival, ISLAMABAD</p>
+                  <p>M: (803) 2110-0000</p>
                 </div>
               </div>
 
-              <div className="invoice-info-grid">
-                <div className="invoice-info-box">
-                  <h4>From</h4>
-                  <p>13-K Moaiz Center, F-7 Markaz, Islamabad</p>
-                  <p>www.venusaesthetics.pk</p>
-                  <p>03111117546</p>
-                </div>
-
-                <div className="invoice-info-box">
-                  <div className="invoice-input-wrap">
-                    <h4>Issued To</h4>
-                    <input type="text" value={patientData.name} readOnly placeholder="Customer Name" />
+              <div className="prescription-section">
+                <div className="prescription-section-title">PATIENT DETAILS</div>
+                <div className="prescription-section-content">
+                  <div className="prescription-field">
+                    <label>Name</label>
+                    <input type="text" value={patientData.name} readOnly />
                   </div>
-                  <div className="invoice-input-wrap">
-                    <h4>Issued By</h4>
-                    <input
-                      type="text"
-                      value={medicineDetails.staff_name}
-                      onChange={(e) => setMedicineDetails({ ...medicineDetails, staff_name: e.target.value })}
-                      placeholder="Staff Name"
-                    />
-                  </div>
-                </div>
-
-                <div className="invoice-info-box">
-                  <div className="invoice-input-wrap">
-                    <h4>Invoice</h4>
+                  <div className="prescription-field">
+                    <label>Patient in</label>
                     <input
                       type="text"
                       value={medicineDetails.invoice_number}
                       onChange={(e) => setMedicineDetails({ ...medicineDetails, invoice_number: e.target.value })}
-                      placeholder="Invoice #"
-                    />
-                  </div>
-                  <div className="invoice-input-wrap">
-                    <h4>Appointment date</h4>
-                    <input
-                      type="text"
-                      value={medicineDetails.appointment_date}
-                      onChange={(e) => setMedicineDetails({ ...medicineDetails, appointment_date: e.target.value })}
-                      placeholder="DD/MM/YYYY"
-                    />
-                  </div>
-                  <div className="invoice-input-wrap">
-                    <h4>Date</h4>
-                    <input
-                      type="text"
-                      value={medicineDetails.date}
-                      onChange={(e) => setMedicineDetails({ ...medicineDetails, date: e.target.value })}
-                      placeholder="DD/MM/YYYY"
                     />
                   </div>
                 </div>
               </div>
 
-              <table className="invoice-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: '45%', display: 'flex', alignItems: 'center' }}>
-                      Item Name
-                      <button className="invoice-add-service-btn" onClick={addMedicineRow} title="Add Service">+</button>
-                    </th>
-                    <th style={{ width: '10%' }}>Qty</th>
-                    <th style={{ width: '15%' }}>Price</th>
-                    <th style={{ width: '15%' }}>Net</th>
-                    <th style={{ width: '10%' }}>Total</th>
-                    <th style={{ width: '5%' }} className="invoice-controls-col"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {calculateMedicineTotals().items.map((service) => (
-                    <tr key={service.id}>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                          <span style={{ color: '#666', marginRight: '8px', fontSize: '11px' }}>◆</span>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
-                            <select
-                              value={
-                                service.isCustom
-                                  ? '__custom__'
-                                  : (MEDICINES_LIST.includes(service.name) ? service.name : '')
-                              }
-                              onChange={(e) => handleSelectMedicineService(service.id, e.target.value)}
-                              style={{ width: '100%' }}
-                            >
-                              <option value="">Select medicine</option>
-                              {MEDICINES_LIST.map((s) => (
-                                <option key={s} value={s}>
-                                  {s}
-                                </option>
-                              ))}
-                              <option value="__custom__">Custom…</option>
-                            </select>
+              <div className="prescription-section">
+                <div className="prescription-section-title">PRESCRIPTION</div>
+                <div style={{ padding: '20px' }}>
+                  <div className="rx-symbol">Rx</div>
 
-                            {service.isCustom && (
-                              <input
-                                type="text"
-                                value={service.name}
-                                onChange={(e) => handleMedicineServiceChange(service.id, 'name', e.target.value)}
-                                placeholder="Custom medicine"
-                              />
-                            )}
-                          </div>
+                  {medicineServices.map((service, index) => (
+                    <div key={service.id} className="prescription-item">
+                      <button className="prescription-remove-btn" onClick={() => removeMedicineRow(service.id)}>✕</button>
+                      <div className="prescription-item-header">
+                        <span className="prescription-item-number">{index + 1}.</span>
+                        <div style={{ flex: 1 }}>
+                          <select
+                            value={
+                              service.isCustom
+                                ? '__custom__'
+                                : (MEDICINES_LIST.includes(service.name) ? service.name : '')
+                            }
+                            onChange={(e) => handleSelectMedicineService(service.id, e.target.value)}
+                            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #94a3b8' }}
+                          >
+                            <option value="">Select medicine</option>
+                            {MEDICINES_LIST.map((s) => (
+                              <option key={s} value={s}>
+                                {s}
+                              </option>
+                            ))}
+                            <option value="__custom__">Custom…</option>
+                          </select>
+
+                          {service.isCustom && (
+                            <input
+                              type="text"
+                              value={service.name}
+                              onChange={(e) => handleMedicineServiceChange(service.id, 'name', e.target.value)}
+                              placeholder="Custom medicine"
+                              style={{ marginTop: '10px', width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #94a3b8' }}
+                            />
+                          )}
                         </div>
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          className="invoice-qty"
-                          value={service.qty}
-                          onChange={(e) => handleMedicineServiceChange(service.id, 'qty', e.target.value)}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          className="invoice-price"
-                          value={service.price}
-                          step="0.01"
-                          onChange={(e) => handleMedicineServiceChange(service.id, 'price', e.target.value)}
-                        />
-                      </td>
-                      <td><span>{service.total.toFixed(2)}</span></td>
-                      <td><span>{service.total.toFixed(2)}</span></td>
-                      <td className="invoice-controls-col">
-                        {medicineServices.length > 1 && (
-                          <button className="invoice-remove-btn" onClick={() => removeMedicineRow(service.id)}>✕</button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              <div className="invoice-discount-container">
-                <label htmlFor="discountSelect" style={{ fontSize: '14px', fontWeight: 'bold', color: '#1a5f7a' }}>Discount:</label>
-                <select
-                  id="discountSelect"
-                  value={medicineDetails.discount_type}
-                  onChange={(e) => setMedicineDetails({ ...medicineDetails, discount_type: e.target.value })}
-                >
-                  <option value="0">0%</option>
-                  <option value="5">5%</option>
-                  <option value="10">10%</option>
-                  <option value="15">15%</option>
-                  <option value="20">20%</option>
-                  <option value="25">25%</option>
-                  <option value="50">50%</option>
-                  <option value="custom">Custom</option>
-                </select>
-                {medicineDetails.discount_type === 'custom' && (
-                  <input
-                    type="number"
-                    value={medicineDetails.custom_discount}
-                    onChange={(e) => setMedicineDetails({ ...medicineDetails, custom_discount: e.target.value })}
-                    style={{ width: '60px', marginLeft: '10px', border: '1px solid #ddd', padding: '5px', background: 'white' }}
-                    placeholder="%"
-                  />
-                )}
-              </div>
-
-              {(() => {
-                const totals = calculateMedicineTotals();
-                return (
-                  <>
-                    <div className="invoice-summary-section">
-                      <div className="invoice-summary-col">
-                        <span className="invoice-summary-title">Sub - Total amount discount</span>
-                        <span className="invoice-summary-value">PKR<span style={{ marginLeft: '2px' }}>{totals.subtotalAfterDiscount.toFixed(2)}</span></span>
+                        <div className="prescription-checkmark">✓</div>
                       </div>
-                      <div className="invoice-summary-col">
-                        <span className="invoice-summary-title">Outstanding amount</span>
-                        <span className="invoice-summary-value">PKR
+
+                      <div className="prescription-item-inputs">
+                        <div className="prescription-input-group">
+                          <label>Dosage:</label>
                           <input
-                            type="number"
-                            value={medicineDetails.outstanding_amount}
-                            onChange={(e) => setMedicineDetails({ ...medicineDetails, outstanding_amount: e.target.value })}
-                            step="0.01"
-                            style={{ width: '80px', marginLeft: '2px' }}
+                            type="text"
+                            value={service.dosage}
+                            onChange={(e) => handleMedicineServiceChange(service.id, 'dosage', e.target.value)}
+                            placeholder="1 tab 2x daily"
                           />
-                        </span>
-                      </div>
-                      <div className="invoice-summary-col invoice-grand-col">
-                        <span className="invoice-summary-title">Grand total</span>
-                        <span className="invoice-summary-value">PKR<span style={{ marginLeft: '2px' }}>{totals.grandTotal.toFixed(2)}</span></span>
-                      </div>
-                    </div>
-
-                    <div className="invoice-payment-section">
-                      <div className="invoice-payment-title">Payment Details</div>
-                      <div className="invoice-payment-info">
-                        <input
-                          type="text"
-                          value={medicineDetails.payment_datetime}
-                          onChange={(e) => setMedicineDetails({ ...medicineDetails, payment_datetime: e.target.value })}
-                          style={{ width: '220px' }}
-                        />
-                        <span className="invoice-separator">|</span>
-                        <select
-                          value={medicineDetails.payment_method}
-                          onChange={(e) => setMedicineDetails({ ...medicineDetails, payment_method: e.target.value })}
-                          style={{ width: '200px', cursor: 'pointer', outline: 'none', border: 'none', appearance: 'none', background: 'transparent', color: 'black' }}
-                        >
-                          <option value="CASH" style={{ color: 'black' }}>CASH</option>
-                          <option value="ONLINE BANK TRANSFER" style={{ color: 'black' }}>ONLINE BANK TRANSFER</option>
-                          <option value="CARD PAYMENT" style={{ color: 'black' }}>CARD PAYMENT</option>
-                        </select>
-                        <span className="invoice-separator">|</span>
-                        <span style={{ marginLeft: '5px' }}>Amount paid PKR<span style={{ marginLeft: '2px' }}>{totals.grandTotal.toFixed(2)}</span></span>
+                        </div>
+                        <div className="prescription-input-group">
+                          <label>Duration:</label>
+                          <input
+                            type="text"
+                            value={service.duration}
+                            onChange={(e) => handleMedicineServiceChange(service.id, 'duration', e.target.value)}
+                            placeholder="5 days"
+                          />
+                        </div>
                       </div>
                     </div>
-                  </>
-                );
-              })()}
+                  ))}
 
-              <div className="invoice-footer">
-                <div className="invoice-footer-line1">Thank you for visiting us today!</div>
-                <div className="invoice-footer-line2">Prices are inclusive of Sales Tax. All payments made including advance payments are non-refundable.</div>
+                  <button
+                    className="invoice-add-service-btn"
+                    onClick={addMedicineRow}
+                    style={{ margin: '10px auto', display: 'block', width: '40px', height: '40px', fontSize: '24px' }}
+                  >
+                    +
+                  </button>
+                </div>
               </div>
 
               <div className="invoice-controls">
-                <button className="invoice-btn invoice-save-btn" onClick={saveMedicine}>💾 Save</button>
+                <button className="invoice-btn invoice-save-btn" onClick={saveMedicine}>💾 {editingMedicineId ? 'Update' : 'Save'}</button>
+                {editingMedicineId && (
+                  <button className="invoice-btn btn-secondary" onClick={cancelEditMedicine} style={{ marginLeft: '10px' }}>Cancel Edit</button>
+                )}
                 <button className="invoice-btn print-btn" onClick={() => window.print()}>🖨️ Print</button>
               </div>
             </div>
@@ -1682,19 +1688,24 @@ function PatientDetails() {
                   <div key={medicine.id} className="data-item">
                     <h4>{medicine.invoice_number}</h4>
                     <p><strong>Date:</strong> {medicine.date} | <strong>Staff:</strong> {medicine.staff_name || 'N/A'}</p>
-                    <p><strong>Grand Total:</strong> PKR {medicine.grand_total.toFixed(2)}
-                      {medicine.discount_amount > 0 && (
-                        <span style={{ color: '#f87171', marginLeft: '10px', fontSize: '0.9em' }}>
-                          (Discount: PKR {medicine.discount_amount.toFixed(2)} - {medicine.discount_percent}%)
-                        </span>
-                      )}
-                    </p>
-                    <p><strong>Items:</strong> {medicine.items.length}</p>
+                    <div style={{ marginTop: '10px' }}>
+                      <ul style={{ margin: '0', paddingLeft: '20px', fontSize: '0.9em', color: '#555' }}>
+                        {medicine.items.map((item, idx) => (
+                          <li key={idx}>
+                            <strong>{item.medicine_name}</strong> - {item.dosage} ({item.duration})
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div style={{ marginTop: '10px' }}>
+                      <button className="btn btn-secondary" onClick={() => handleEditMedicine(medicine)} style={{ fontSize: '12px', padding: '5px 10px' }}>
+                        ✏️ Edit
+                      </button>
+                    </div>
                   </div>
                 ))
               )}
             </div>
-
           </div>
         )}
 
@@ -1722,11 +1733,10 @@ function PatientDetails() {
           </div>
         )}
 
-        {/* ================= APPOINTMENTS TAB ================= */}
+        {/* Appointments Tab */}
         {activeTab === 'appointments' && (
           <div id="appointments" className="tab-content active">
             <h2>Appointments & SMS Alerts</h2>
-
             <div className="form-section" style={{ marginBottom: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <p>Schedule an appointment and set up when the automated SMS alert should trigger.</p>
@@ -1762,7 +1772,6 @@ function PatientDetails() {
                 />
                 <small style={{ display: 'block', color: '#666', marginTop: '5px' }}>The system checks this time against the current time.</small>
               </div>
-
               <div className="form-actions" style={{ display: 'flex', gap: '10px' }}>
                 <button type="submit" className="btn-primary">
                   {editingAppointmentId ? 'Update Appointment' : 'Schedule Appointment'}
@@ -1820,7 +1829,6 @@ function PatientDetails() {
             </div>
           </div>
         )}
-
       </div>
     </div>
   );
