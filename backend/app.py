@@ -396,47 +396,44 @@ def update_tooth(patient_id):
 # Billing Routes
 @app.route('/api/bills', methods=['POST'])
 def create_bill():
-    """Create a new bill"""
     data = request.json
-    
-    patient_id = data.get('patient_id')
-    # Generate unique invoice number if not provided
-    invoice_number = data.get('invoice_number') or f"INV-{datetime.now().strftime('%Y%m%d')}-{str(uuid.uuid4())[:6].upper()}"
-    
     try:
+        # Cast to int to prevent SQLAlchemy StatementError (Bug 4)
+        p_id = int(data.get('patient_id'))
+        
         bill = Bill(
-            patient_id=patient_id,
-            invoice_number=invoice_number,
-            staff_name=data.get('staff_name', ''),
-            appointment_date=data.get('appointment_date', ''),
-            date=data.get('date', datetime.now().strftime('%d/%m/%Y')),
-            subtotal=float(data.get('subtotal', 0)),
-            discount_percent=float(data.get('discount_percent', 0)),
-            discount_amount=float(data.get('discount_amount', 0)),
-            outstanding_amount=float(data.get('outstanding_amount', 0)),
-            grand_total=float(data.get('grand_total', 0)),
-            payment_method=data.get('payment_method', 'ONLINE BANK TRANSFER'),
-            payment_datetime=data.get('payment_datetime', datetime.now().strftime('%a, %d %b %Y %H:%M'))
+            patient_id=p_id,
+            invoice_number=data.get('invoice_number'),
+            staff_name=data.get('staff_name'),
+            appointment_date=data.get('appointment_date'),
+            date=data.get('date'),
+            subtotal=data.get('subtotal'),
+            discount_percent=data.get('discount_percent'),
+            discount_amount=data.get('discount_amount'),
+            outstanding_amount=data.get('outstanding_amount'),
+            grand_total=data.get('grand_total'),
+            payment_method=data.get('payment_method'),
+            payment_datetime=data.get('payment_datetime')
         )
         db.session.add(bill)
-        db.session.flush() # Get bill ID
         
-        items = data.get('items', [])
-        for item_data in items:
-            item = BillItem(
-                bill_id=bill.id,
-                service_name=item_data.get('service_name', ''),
-                quantity=int(item_data.get('quantity', 1)),
-                price=float(item_data.get('price', 0)),
-                total=float(item_data.get('total', 0))
+        for item in data.get('items', []):
+            bill_item = BillItem(
+                bill=bill,
+                service_name=item.get('service_name'),
+                quantity=item.get('quantity'),
+                price=item.get('price'),
+                total=item.get('total')
             )
-            db.session.add(item)
+            db.session.add(bill_item)
             
         db.session.commit()
         return jsonify(bill.to_dict()), 201
+    except (ValueError, TypeError) as e:
+        return jsonify({'error': 'Invalid patient_id format. Must be an integer.'}), 400
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 400
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/bills/<int:bill_id>', methods=['PUT'])
 def update_bill(bill_id):
@@ -480,49 +477,44 @@ def update_bill(bill_id):
 
 @app.route('/api/prescriptions', methods=['POST'])
 def create_prescription():
-    """Create a new prescription invoice"""
     data = request.json
-    
-    patient_id = data.get('patient_id')
-    # Generate unique invoice number if not provided
-    invoice_number = data.get('invoice_number') or f"RX-{datetime.now().strftime('%Y%m%d')}-{str(uuid.uuid4())[:6].upper()}"
-    
     try:
-        prescription = Prescription(
-            patient_id=patient_id,
-            invoice_number=invoice_number,
-            staff_name=data.get('staff_name', ''),
-            appointment_date=data.get('appointment_date', ''),
-            date=data.get('date', datetime.now().strftime('%d/%m/%Y')),
-            subtotal=float(data.get('subtotal', 0)),
-            discount_percent=float(data.get('discount_percent', 0)),
-            discount_amount=float(data.get('discount_amount', 0)),
-            outstanding_amount=float(data.get('outstanding_amount', 0)),
-            grand_total=float(data.get('grand_total', 0)),
-            payment_method=data.get('payment_method', 'ONLINE BANK TRANSFER'),
-            payment_datetime=data.get('payment_datetime', datetime.now().strftime('%a, %d %b %Y %H:%M'))
-        )
-        db.session.add(prescription)
-        db.session.flush() # Get prescription ID
+        # Cast to int to prevent SQLAlchemy StatementError (Bug 4)
+        p_id = int(data.get('patient_id'))
         
-        items = data.get('items', [])
-        for item_data in items:
-            item = PrescriptionItem(
-                prescription_id=prescription.id,
-                medicine_name=item_data.get('medicine_name', ''),
-                quantity=int(item_data.get('quantity', 1)),
-                dosage=item_data.get('dosage', ''),
-                duration=item_data.get('duration', ''),
-                price=float(item_data.get('price', 0)),
-                total=float(item_data.get('total', 0))
+        presc = Prescription(
+            patient_id=p_id,
+            invoice_number=data.get('invoice_number'),
+            staff_name=data.get('staff_name'),
+            appointment_date=data.get('appointment_date'),
+            date=data.get('date'),
+            subtotal=float(data.get('subtotal', 0.0)),
+            discount_percent=float(data.get('discount_percent', 0.0)),
+            discount_amount=float(data.get('discount_amount', 0.0)),
+            outstanding_amount=float(data.get('outstanding_amount', 0.0)),
+            grand_total=float(data.get('grand_total', 0.0)),
+            payment_method=data.get('payment_method', 'ONLINE BANK TRANSFER'),
+            payment_datetime=data.get('payment_datetime')
+        )
+        db.session.add(presc)
+        
+        for item in data.get('items', []):
+            p_item = PrescriptionItem(
+                prescription=presc,
+                medicine_name=item.get('medicine_name'),
+                quantity=int(item.get('quantity', 1)),
+                price=float(item.get('price', 0.0)),
+                total=float(item.get('total', 0.0))
             )
-            db.session.add(item)
+            db.session.add(p_item)
             
         db.session.commit()
-        return jsonify(prescription.to_dict()), 201
+        return jsonify(presc.to_dict()), 201
+    except (ValueError, TypeError) as e:
+        return jsonify({'error': 'Invalid patient_id format.'}), 400
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 400
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/prescriptions/<int:prescription_id>', methods=['PUT'])
 def update_prescription(prescription_id):
@@ -553,8 +545,6 @@ def update_prescription(prescription_id):
                     prescription_id=prescription.id,
                     medicine_name=item_data.get('medicine_name', ''),
                     quantity=int(item_data.get('quantity', 1)),
-                    dosage=item_data.get('dosage', ''),
-                    duration=item_data.get('duration', ''),
                     price=float(item_data.get('price', 0)),
                     total=float(item_data.get('total', 0))
                 )

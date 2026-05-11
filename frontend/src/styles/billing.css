@@ -579,11 +579,45 @@
 }
 
 @media print {
-    .prescription-container {
-        box-shadow: none;
-        padding: 0;
+    /* Hide everything by default */
+    body * {
+        visibility: hidden !important;
     }
-    .prescription-remove-btn, .invoice-add-service-btn, .invoice-controls {
+
+    /* Show only prescription container and its children */
+    .prescription-container,
+    .prescription-container * {
+        visibility: visible !important;
+    }
+
+    .prescription-container {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 20px !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+        background: white !important;
+        z-index: 9999;
+    }
+    
+    .prescription-remove-btn, .invoice-add-service-btn, .invoice-controls, .data-list, .message {
         display: none !important;
+    }
+    
+    .prescription-container input {
+        border: none !important;
+        background: transparent !important;
+        padding: 2px !important;
+        color: black !important;
+    }
+    
+    .prescription-container select {
+        border: none !important;
+        background: transparent !important;
+        color: black !important;
     }
 }

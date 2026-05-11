@@ -59,6 +59,47 @@ for db_path in possible_paths:
                 )
             ''')
             print("Successfully ensured prescription tables exist.")
+            
+            # Remove dosage and duration columns from existing prescription_items table
+            # SQLite doesn't support DROP COLUMN, so we need to recreate the table
+            try:
+                # Check if the old table has dosage/duration columns
+                cursor.execute("PRAGMA table_info(prescription_items)")
+                columns = cursor.fetchall()
+                has_dosage = any(col[1] == 'dosage' for col in columns)
+                has_duration = any(col[1] == 'duration' for col in columns)
+                
+                if has_dosage or has_duration:
+                    # Create new table without dosage/duration columns
+                    cursor.execute('''
+                        CREATE TABLE prescription_items_new (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            prescription_id INTEGER REFERENCES prescriptions(id) NOT NULL,
+                            medicine_name VARCHAR(255) NOT NULL,
+                            quantity INTEGER DEFAULT 1,
+                            price FLOAT DEFAULT 0.0,
+                            total FLOAT DEFAULT 0.0
+                        )
+                    ''')
+                    
+                    # Copy data from old table to new table
+                    cursor.execute('''
+                        INSERT INTO prescription_items_new 
+                        (id, prescription_id, medicine_name, quantity, price, total)
+                        SELECT id, prescription_id, medicine_name, quantity, price, total
+                        FROM prescription_items
+                    ''')
+                    
+                    # Drop old table and rename new table
+                    cursor.execute("DROP TABLE prescription_items")
+                    cursor.execute("ALTER TABLE prescription_items_new RENAME TO prescription_items")
+                    
+                    print("Successfully removed dosage and duration columns from prescription_items.")
+                else:
+                    print("Dosage and duration columns already removed from prescription_items.")
+                    
+            except sqlite3.OperationalError as e:
+                print(f"Error removing dosage/duration columns: {e}")
         except sqlite3.OperationalError as e:
             print(f"Error creating prescription tables: {e}")
         

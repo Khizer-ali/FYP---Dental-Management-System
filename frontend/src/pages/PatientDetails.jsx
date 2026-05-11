@@ -22,19 +22,15 @@ function PatientDetails() {
   const [activeTab, setActiveTab] = useState('documents');
   const [patientData, setPatientData] = useState(null);
   const [messages, setMessages] = useState({});
-  const [loading, setLoading] = useState(true); // Added loading state
+  const [loading, setLoading] = useState(true);
 
-  // Data states
   const [documents, setDocuments] = useState([]);
   const [vitals, setVitals] = useState([]);
   const [familyHistory, setFamilyHistory] = useState([]);
   const [images, setImages] = useState([]);
   const [teethData, setTeethData] = useState({});
   const [chatMessages, setChatMessages] = useState([
-    {
-      type: 'bot',
-      text: "Hello! I'm your medical assistant. I have access to this patient's medical records including documents, vital signs, and family history. How can I help you today?"
-    }
+    { type: 'bot', text: "Hello! I'm your medical assistant. How can I help you today?" }
   ]);
 
   // Appointments / SMS
@@ -67,7 +63,7 @@ function PatientDetails() {
   // Medicine States
   const [medicines, setMedicines] = useState([]);
   const [medicineServices, setMedicineServices] = useState([
-    { id: 1, name: '', qty: 1, dosage: '', duration: '', price: 0, total: 0 }
+    { id: 1, name: '', qty: 1, price: 0, total: 0 }
   ]);
   const [medicineDetails, setMedicineDetails] = useState({
     staff_name: '',
@@ -185,9 +181,9 @@ function PatientDetails() {
   };
 
   const showMessage = (containerId, text, type) => {
-    setMessages({ ...messages, [containerId]: { text, type } });
+    setMessages(prev => ({ ...prev, [containerId]: { text, type } }));
     setTimeout(() => {
-      setMessages({ ...messages, [containerId]: null });
+      setMessages(prev => ({ ...prev, [containerId]: null }));
     }, 5000);
   };
 
@@ -554,7 +550,7 @@ function PatientDetails() {
     }
 
     const payload = {
-      patient_id: patientId,
+      patient_id: parseInt(patientId),
       invoice_number: billDetails.invoice_number,
       staff_name: billDetails.staff_name,
       appointment_date: billDetails.appointment_date,
@@ -618,7 +614,9 @@ function PatientDetails() {
   const calculateMedicineTotals = () => {
     let subtotal = 0;
     const items = medicineServices.map(service => {
-      const net = (Number(service.qty) || 0) * (Number(service.price) || 0);
+      // For prescriptions, use a default price of 0 if not set, since medicines are typically not priced like services
+      const price = Number(service.price) || 0;
+      const net = (Number(service.qty) || 1) * price;
       subtotal += net;
       return { ...service, total: net };
     });
@@ -669,7 +667,7 @@ function PatientDetails() {
   };
 
   const addMedicineRow = () => {
-    setMedicineServices(prev => [...prev, { id: Date.now(), name: '', qty: 1, dosage: '', duration: '', price: 0, total: 0 }]);
+    setMedicineServices(prev => [...prev, { id: Date.now(), name: '', qty: 1, price: 0, total: 0 }]);
   };
 
   const removeMedicineRow = (id) => {
@@ -695,8 +693,6 @@ function PatientDetails() {
       id: item.id,
       name: item.medicine_name,
       qty: item.quantity,
-      dosage: item.dosage || '',
-      duration: item.duration || '',
       price: item.price,
       total: item.total,
       isCustom: !MEDICINES_LIST.includes(item.medicine_name)
@@ -708,7 +704,7 @@ function PatientDetails() {
 
   const cancelEditMedicine = () => {
     setEditingMedicineId(null);
-    setMedicineServices([{ id: Date.now(), name: '', qty: 1, dosage: '', duration: '', price: 0, total: 0 }]);
+    setMedicineServices([{ id: Date.now(), name: '', qty: 1, price: 0, total: 0 }]);
     setMedicineDetails({
       staff_name: '',
       invoice_number: `MED-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
@@ -749,8 +745,6 @@ function PatientDetails() {
       items: validItems.map(item => ({
         medicine_name: item.name,
         quantity: item.qty,
-        dosage: item.dosage,
-        duration: item.duration,
         price: item.price,
         total: item.total
       }))
@@ -1558,6 +1552,166 @@ function PatientDetails() {
         {/* Medicine Tab */}
         {activeTab === 'medicine' && (
           <div id="medicine" className="tab-content active">
+            <style>{`
+      /* Fix for light font visibility */
+      .prescription-input-group input {
+        color: #1e293b !important; /* Darker slate color */
+        font-weight: 500 !important;
+        border: 1px solid #cbd5e1 !important;
+      }
+      .prescription-input-group input::placeholder {
+        color: #94a3b8;
+      }
+      @media print { 
+        .invoice-controls, .invoice-add-service-btn, .prescription-remove-btn, .data-list, .message { display: none !important; } 
+      }
+    `}</style>
+
+            {messages.medicineMessage && (
+              <div id="medicineMessage" className={`message ${messages.medicineMessage.type}`} style={{ marginBottom: '20px' }}>
+                {messages.medicineMessage.text}
+              </div>
+            )}
+
+            <div className="prescription-container">
+              <div className="prescription-header">
+                <div className="prescription-logo-section">
+                  <div style={{ fontSize: '40px' }}>🦷</div>
+                  <h1>FYP DENTAL<br />MANAGEMENT SYSTEM</h1>
+                </div>
+                <div className="prescription-contact-info">
+                  <h3>ISLAMABAD DENTAL CARE</h3>
+                  <p>20 Rival, ISLAMABAD</p>
+                  <p>M: (803) 2110-0000</p>
+                </div>
+              </div>
+
+              <div className="prescription-section">
+                <div className="prescription-section-title">PATIENT DETAILS</div>
+                <div className="prescription-section-content">
+                  <div className="prescription-field">
+                    <label>Name</label>
+                    <input type="text" value={patientData.name || ''} readOnly style={{ color: '#475569' }} />
+                  </div>
+                  <div className="prescription-field">
+                    <label>Patient ID / Invoice</label>
+                    <input
+                      type="text"
+                      value={medicineDetails.invoice_number || ''}
+                      onChange={(e) => setMedicineDetails({ ...medicineDetails, invoice_number: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="prescription-section">
+                <div className="prescription-section-title">PRESCRIPTION</div>
+                <div style={{ padding: '20px' }}>
+                  <div className="rx-symbol">Rx</div>
+
+                  {medicineServices.map((service, index) => (
+                    <div key={service.id} className="prescription-item">
+                      <button type="button" className="prescription-remove-btn" onClick={() => removeMedicineRow(service.id)}>✕</button>
+                      <div className="prescription-item-header">
+                        <span className="prescription-item-number">{index + 1}.</span>
+                        <div style={{ flex: 1 }}>
+                          <select
+                            value={service.isCustom ? '__custom__' : (MEDICINES_LIST.includes(service.name) ? service.name : '')}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === '__custom__') {
+                                handleMedicineServiceChange(service.id, 'isCustom', true);
+                                handleMedicineServiceChange(service.id, 'name', '');
+                              } else {
+                                handleMedicineServiceChange(service.id, 'isCustom', false);
+                                handleMedicineServiceChange(service.id, 'name', val);
+                              }
+                            }}
+                            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #94a3b8', color: '#1e293b' }}
+                          >
+                            <option value="">Select medicine</option>
+                            {MEDICINES_LIST.map((s) => (
+                              <option key={s} value={s}>{s}</option>
+                            ))}
+                            <option value="__custom__">Custom…</option>
+                          </select>
+
+                          {service.isCustom && (
+                            <input
+                              type="text"
+                              value={service.name}
+                              onChange={(e) => handleMedicineServiceChange(service.id, 'name', e.target.value)}
+                              placeholder="Enter medicine name"
+                              style={{ marginTop: '10px', width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #94a3b8', color: '#1e293b', fontWeight: 'bold' }}
+                              autoFocus
+                            />
+                          )}
+                        </div>
+                      </div>
+
+                                          </div>
+                  ))}
+
+                  <button
+                    type="button"
+                    className="invoice-add-service-btn"
+                    onClick={addMedicineRow}
+                    style={{ margin: '10px auto', display: 'block', width: '40px', height: '40px', fontSize: '24px' }}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              <div className="invoice-controls">
+                <button
+                  type="button"
+                  className="invoice-btn invoice-save-btn"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    console.log("Save clicked", medicineServices); // Debugging line
+                    saveMedicine();
+                  }}
+                >
+                  💾 {editingMedicineId ? 'Update Prescription' : 'Save Prescription'}
+                </button>
+                {editingMedicineId && (
+                  <button type="button" className="invoice-btn btn-secondary" onClick={cancelEditMedicine} style={{ marginLeft: '10px' }}>
+                    Cancel Edit
+                  </button>
+                )}
+                <button type="button" className="invoice-btn print-btn" onClick={() => window.print()}>🖨️ Print</button>
+              </div>
+            </div>
+
+            {/* Previous Medicines Section */}
+            <div className="data-list" style={{ marginTop: '40px' }}>
+              <h3>Previous Medicines</h3>
+              {medicines.length === 0 ? (
+                <p>No medicines saved yet.</p>
+              ) : (
+                medicines.map(medicine => (
+                  <div key={medicine.id} className="data-item">
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <h4>{medicine.invoice_number}</h4>
+                      <button className="btn btn-secondary" onClick={() => handleEditMedicine(medicine)} style={{ fontSize: '12px', padding: '5px 10px' }}>
+                        ✏️ Edit
+                      </button>
+                    </div>
+                    <p><strong>Date:</strong> {medicine.date}</p>
+                    <ul style={{ paddingLeft: '20px', color: '#334155' }}>
+                      {medicine.items.map((item, idx) => (
+                        <li key={idx}><strong>{item.medicine_name}</strong></li>
+                      ))}
+                    </ul>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+        {/* {activeTab === 'medicine' && (
+          <div id="medicine" className="tab-content active">
             {messages.medicineMessage && (
               <div id="medicineMessage" className={`message ${messages.medicineMessage.type}`} style={{ marginBottom: '20px' }}>
                 {messages.medicineMessage.text}
@@ -1637,27 +1791,7 @@ function PatientDetails() {
                         <div className="prescription-checkmark">✓</div>
                       </div>
 
-                      <div className="prescription-item-inputs">
-                        <div className="prescription-input-group">
-                          <label>Dosage:</label>
-                          <input
-                            type="text"
-                            value={service.dosage}
-                            onChange={(e) => handleMedicineServiceChange(service.id, 'dosage', e.target.value)}
-                            placeholder="1 tab 2x daily"
-                          />
-                        </div>
-                        <div className="prescription-input-group">
-                          <label>Duration:</label>
-                          <input
-                            type="text"
-                            value={service.duration}
-                            onChange={(e) => handleMedicineServiceChange(service.id, 'duration', e.target.value)}
-                            placeholder="5 days"
-                          />
-                        </div>
-                      </div>
-                    </div>
+                                          </div>
                   ))}
 
                   <button
@@ -1692,7 +1826,7 @@ function PatientDetails() {
                       <ul style={{ margin: '0', paddingLeft: '20px', fontSize: '0.9em', color: '#555' }}>
                         {medicine.items.map((item, idx) => (
                           <li key={idx}>
-                            <strong>{item.medicine_name}</strong> - {item.dosage} ({item.duration})
+                            <strong>{item.medicine_name}</strong>
                           </li>
                         ))}
                       </ul>
@@ -1707,7 +1841,7 @@ function PatientDetails() {
               )}
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Chatbot Tab */}
         {activeTab === 'chatbot' && (
