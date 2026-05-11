@@ -1,130 +1,219 @@
-# 🦷 Dentrixa AI — Dental Management System (FYP)
+# 🦷 FYP Dental Management System
 
-
-
-> **Next-Generation Clinical Assistant & Practice Management System**
->
-> DentaFlow Pro is a state-of-the-art dental management solution designed to streamline clinical workflows through AI-powered insights, agentic automation, and a premium user experience.
+A comprehensive dental practice management solution with AI-powered clinical assistance, automated workflows, and modern web interface.
 
 ---
 
 ## 🌟 Key Features
 
-### 🤖 AI & Agentic Intelligence
-- **Master Agent Orchestration**: A central AI brain that coordinates specialized sub-agents for medical data processing.
-- **Gemini Chatbot**: Interactive AI assistant that understands full patient context (vitals, history, dental records) to provide clinical answers.
-- **Smart Document Parsing**: Automated extraction of information from medical reports using OCR and AI.
-- **Teeth Annotation System**: Digital 32-tooth chart with interactive condition tracking (Root Canal, Cavity, etc.).
+### 🤖 AI-Powered Clinical Intelligence
+- **Smart Chatbot Assistant**: Google Gemini-powered AI that understands complete patient context (vitals, history, dental records) to provide clinical insights
+- **Automated Document Processing**: OCR and AI extraction from medical reports and documents
+- **Interactive Dental Chart**: Digital 32-tooth mapping system with condition tracking (cavities, root canals, etc.)
+- **Master Agent Orchestration**: Central AI brain coordinating specialized medical data processing agents
 
-### 🏥 Clinical Management
-- **Electronic Health Records (EHR)**: Comprehensive storage for patient vitals, medical history, and family predispositions.
-- **Medical Image Repository**: Dedicated support for PNG, JPG, and DICOM imaging with metadata tagging.
-- **Vitals Tracking**: Real-time logging and historical visualization of patient biometric data.
+### 🏥 Comprehensive Patient Management
+- **Electronic Health Records (EHR)**: Complete patient profiles with vitals, medical history, and family history
+- **Medical Imaging Repository**: Support for PNG, JPG, and DICOM files with metadata tagging
+- **Real-time Vitals Tracking**: Biometric data logging with historical visualization
+- **Prescription Management**: Digital prescription creation, storage, and printing with medicine catalog
 
-### 💼 Administrative Excellence
-- **Dynamic Billing & Invoicing**: Automated invoice generation with procedure catalogs, custom discounts, and payment tracking.
-- **Appointment Scheduler**: Integrated calendar system for managing patient visits.
-- **SMS Notifications**: Automated alerts and reminders powered by Twilio to reduce no-show rates.
-- **Role-Based Access Control (RBAC)**: Secure multi-user environment with Admin and Doctor roles.
-
----
-
-## 🔬 Project Deep-Dive
-
-### 📂 File Structure & Purpose
-
-#### 🖥️ Backend (Flask) — `backend/`
-- **`app.py`**: The central nervous system. It handles all REST API routing, server initialization, and orchestrates calls between the database and the Master Agent.
-- **`database.py`**: Contains the **SQLAlchemy Models**. This is where the schema for Patients, Doctors, Appointments, Bills, and Medical Records is defined.
-- **`agents/`**: The "Agentic" layer.
-    - `master_agent.py`: Aggregates patient data into a single JSON context for the AI.
-    - `chatbot_agent.py`: Interfaces with Google Gemini API to generate clinical responses.
-    - `teeth_agent.py`: Logic for mapping dental conditions to specific tooth IDs.
-- **`routes/`**: Modular API logic for Authentication and User management.
-- **`auth_utils.py`**: Security helpers for JWT (JSON Web Tokens) and Bcrypt password hashing.
-- **`sms_service.py`**: Integration with Twilio for sending real-world SMS alerts.
-
-#### 🎨 Frontend (React) — `frontend/`
-- **`src/pages/`**:
-    - `Dashboard.jsx`: High-level overview, patient creation, and practice analytics.
-    - `PatientDetails.jsx`: The most complex page; manages the 8-tab interface for clinical data.
-    - `AuthPage.jsx`: Secure login and registration portal.
-- **`src/components/`**:
-    - `ToothChart.jsx`: An interactive SVG-based dental map that allows doctors to mark teeth visually.
-- **`src/constants/serviceCatalog.js`**: The master list of dental procedures and their default prices used in billing.
-- **`src/styles/`**: Custom Vanilla CSS for the premium glassmorphism and clinical aesthetics.
+### 💼 Practice Administration
+- **Dynamic Billing System**: Automated invoice generation with procedure catalogs, discounts, and payment tracking
+- **Appointment Scheduling**: Calendar-based appointment management with SMS reminders
+- **Role-Based Access Control**: Secure multi-user environment (Admin/Doctor roles)
+- **SMS Notifications**: Twilio-powered automated alerts and appointment reminders
 
 ---
 
-## 📦 Dependencies & Technologies
+## 🏗️ Technical Architecture
 
-### Backend Core
-- **Flask**: A lightweight but powerful WSGI web framework.
-- **SQLAlchemy**: An Object-Relational Mapper (ORM) that lets us interact with the database using Python objects instead of raw SQL.
-- **Google Generative AI**: The SDK for Gemini, enabling our agentic chatbot capabilities.
-- **PyPDF2 & Tesseract**: Used for reading and extracting text from uploaded medical PDFs and scanned images (OCR).
-- **Python-Jose & Bcrypt**: Ensure user passwords are never stored in plain text and sessions are signed securely.
+### Backend Stack (Flask + Python)
+- **Flask**: REST API framework handling all server-side logic
+- **SQLAlchemy**: ORM for database operations with SQLite
+- **Google Generative AI**: Gemini integration for AI-powered features
+- **JWT Authentication**: Secure token-based authentication with Bcrypt
+- **Twilio SMS**: Real-time SMS notifications and reminders
 
-### Frontend Core
-- **React 19**: The latest version of the popular UI library for building fast, reactive interfaces.
-- **Vite**: A modern build tool that provides lightning-fast development and optimized production bundles.
-- **React Router 7**: Handles the navigation between Dashboard, Patient profiles, and Billing history.
-- **Axios**: Manages the asynchronous communication between the React UI and the Flask API.
+### Frontend Stack (React + Vite)
+- **React 19**: Modern UI framework with hooks-based state management
+- **Vite**: Fast development and optimized production builds
+- **React Router 7**: Client-side routing and navigation
+- **Axios**: HTTP client for API communication
+- **Custom CSS**: Responsive design with clinical aesthetics
 
----
-
-## 💊 Pharmacy Reference
-*Commonly prescribed medications integrated into the system catalog:*
-
-| Type | Medication | Dosage / Form |
-| :--- | :--- | :--- |
-| **Antibiotics** | Augmentin | 625mg / 1g |
-| **Antibiotics** | Velocef / Vibramycin | 500mg / 100mg |
-| **Pain Relief** | Panadol / Ansaid | 100mg |
-| **Muscle Relaxants** | Movax | 2mg |
-| **Gastric Support** | Risek | 40mg |
-| **Topical** | Dicloran / Removate | Gel |
-| **Oral Hygiene** | Enziclor | Mouthwash / Gel |
-| **Other** | Tegral / Gabika / Flagyl | 200mg / 50mg / 400mg |
-| **Supplements** | Ca-C 1000 | Effervescent |
+### Database Schema
+- **Patients**: Core patient information and demographics
+- **Appointments**: Scheduling with SMS integration
+- **Prescriptions**: Medicine management with itemized details
+- **Bills**: Invoicing with procedure catalogs
+- **Medical Records**: Vitals, history, documents, and images
+- **Users**: Authentication and role management
 
 ---
 
-## 📐 Architecture Diagram
+## 📁 Project Structure
 
-```mermaid
-graph TD
-    User((User)) -->|React UI| Frontend[Vite Frontend]
-    Frontend -->|REST API| Backend[Flask API]
-    Backend -->|Auth| AuthBP[Auth/User Routes]
-    Backend -->|Clinical| MasterAgent[Master Agent]
-    
-    MasterAgent --> DocumentAgent[Document Agent]
-    MasterAgent --> VitalsAgent[Vitals Agent]
-    MasterAgent --> TeethAgent[Teeth Agent]
-    MasterAgent --> ChatAgent[Gemini Chat Agent]
-    
-    Backend -->|ORM| DB[(SQLite Database)]
-    Backend -->|Storage| FileSystem[Uploads/Images]
-    ChatAgent -->|LLM| Gemini[[Google Gemini AI]]
+```
+FYP---Dental-Management-System/
+├── backend/
+│   ├── app.py                 # Main Flask application and API routes
+│   ├── database.py             # SQLAlchemy models and database schema
+│   ├── agents/                 # AI-powered processing agents
+│   │   ├── master_agent.py     # Central AI orchestration
+│   │   ├── chatbot_agent.py   # Gemini chatbot integration
+│   │   └── teeth_agent.py     # Dental chart processing
+│   ├── routes/                 # Modular API endpoints
+│   │   ├── auth_routes.py      # Authentication logic
+│   │   └── user_routes.py     # User management
+│   ├── auth_utils.py           # Security utilities (JWT, Bcrypt)
+│   ├── sms_service.py         # Twilio SMS integration
+│   └── migrate_db.py          # Database migration scripts
+├── frontend/
+│   ├── src/
+│   │   ├── pages/             # Main application pages
+│   │   │   ├── PatientDetails.jsx   # 8-tab patient management interface
+│   │   │   ├── Dashboard.jsx       # Main dashboard and patient creation
+│   │   │   └── AuthPage.jsx       # Login/registration portal
+│   │   ├── components/         # Reusable UI components
+│   │   │   ├── ToothChart.jsx     # Interactive dental chart
+│   │   │   └── Chatbot.jsx       # AI assistant interface
+│   │   ├── styles/             # CSS styling files
+│   │   │   ├── billing.css       # Invoice and prescription styling
+│   │   │   └── main.css         # Global application styles
+│   │   └── constants/          # Static data catalogs
+│   │       ├── serviceCatalog.js  # Dental procedures and pricing
+│   │       └── medicineList.js    # Prescription medication catalog
+│   └── package.json           # Frontend dependencies
+├── docker-compose.yml          # Container orchestration
+└── README.md                 # This documentation
 ```
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Quick Start Guide
 
-### Option A: Deployment using Docker (Recommended)
-1.  **Configure environment**: Copy `.env.example` to `.env`.
-2.  **Launch**: `docker-compose up --build -d`
-3.  **Access**: Open `http://localhost`.
+### Prerequisites
+- Docker and Docker Compose
+- Node.js 18+ and npm
+- Python 3.9+
 
-### Option B: Manual Setup
-- **Backend**: `pip install -r requirements.txt && python app.py`
-- **Frontend**: `npm install && npm run dev`
+### Docker Deployment (Recommended)
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/Khizer-ali/FYP---Dental-Management-System.git
+   cd FYP---Dental-Management-System
+   ```
+
+2. **Configure environment**:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
+
+3. **Launch application**:
+   ```bash
+   docker-compose up --build -d
+   ```
+
+4. **Access the system**:
+   - Frontend: http://localhost:5173
+   - Backend API: http://localhost:5000
+
+### Manual Development Setup
+
+#### Backend Setup
+```bash
+cd backend
+pip install -r requirements.txt
+python app.py
+```
+
+#### Frontend Setup
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+## 💊 Prescription Management
+
+The system includes a comprehensive prescription module with:
+
+- **Medicine Catalog**: Pre-defined list of common dental medications
+- **Digital Prescriptions**: Create, edit, and manage patient prescriptions
+- **Print-Ready Format**: Optimized prescription templates for printing
+- **Billing Integration**: Automatic invoice generation for prescribed medications
+
+### Common Medications Available
+| Category | Medication | Form |
+|-----------|-------------|-------|
+| Antibiotics | Augmentin, Velocef, Vibramycin | Tablets |
+| Pain Relief | Panadol, Ansaid | Tablets |
+| Supplements | Ca-C 1000 | Effervescent |
+| Topical | Dicloran, Removate | Gel |
+| Oral Hygiene | Enziclor | Mouthwash |
+
+---
+
+## 🔧 Configuration
+
+### Environment Variables
+Create a `.env` file with the following variables:
+
+```env
+# Database
+DATABASE_URL=sqlite:///clinical_assistant.db
+
+# Google Gemini AI
+GOOGLE_API_KEY=your_gemini_api_key_here
+
+# Twilio SMS
+TWILIO_ACCOUNT_SID=your_twilio_sid
+TWILIO_AUTH_TOKEN=your_twilio_token
+TWILIO_PHONE_NUMBER=your_twilio_number
+
+# Application
+SECRET_KEY=your_secret_key_here
+FLASK_ENV=development
+```
+
+---
+
+## 📊 Key Features in Detail
+
+### Patient Management
+- Complete patient profiles with demographics
+- Medical history tracking
+- Family medical history
+- Vital signs monitoring
+- Document and image storage
+
+### Clinical Tools
+- Interactive dental chart with 32 teeth
+- Condition tracking (cavities, fillings, root canals)
+- AI-powered clinical assistance
+- Prescription writing and management
+
+### Administrative Functions
+- Automated billing and invoicing
+- Appointment scheduling with reminders
+- SMS notifications for appointments
+- Role-based access control
+- Comprehensive reporting
+
+---
+
+## 🤝 Contributing
+
+This is a Final Year Project (FYP) developed for educational purposes. The system demonstrates modern web development practices, AI integration, and healthcare application design.
 
 ---
 
 ## 📄 License
-Proprietary / Internal use for Final Year Project (FYP).
 
-Developed with ❤️ for the Dental Community.
+Proprietary software for educational use only.
+
+Developed with ❤️ for the dental community.

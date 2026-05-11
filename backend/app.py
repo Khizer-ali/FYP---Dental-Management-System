@@ -139,6 +139,7 @@ def delete_patient(patient_id):
     """Delete a patient and all their associated records"""
     patient = Patient.query.get_or_404(patient_id)
     try:
+        # Delete the patient - cascade should handle associated records
         db.session.delete(patient)
         db.session.commit()
         return jsonify({'message': 'Patient deleted successfully'}), 200

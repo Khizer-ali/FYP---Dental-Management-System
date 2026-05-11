@@ -1627,7 +1627,7 @@ function PatientDetails() {
                                 handleMedicineServiceChange(service.id, 'name', val);
                               }
                             }}
-                            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #94a3b8', color: '#1e293b' }}
+                            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #94a3b8', color: '#1e293b', backgroundColor: 'white' }}
                           >
                             <option value="">Select medicine</option>
                             {MEDICINES_LIST.map((s) => (
@@ -1669,7 +1669,6 @@ function PatientDetails() {
                   className="invoice-btn invoice-save-btn"
                   onClick={(e) => {
                     e.preventDefault();
-                    console.log("Save clicked", medicineServices); // Debugging line
                     saveMedicine();
                   }}
                 >
@@ -1710,7 +1709,7 @@ function PatientDetails() {
             </div>
           </div>
         )}
-        {/* {activeTab === 'medicine' && (
+        {activeTab === 'medicine' && (
           <div id="medicine" className="tab-content active">
             {messages.medicineMessage && (
               <div id="medicineMessage" className={`message ${messages.medicineMessage.type}`} style={{ marginBottom: '20px' }}>
@@ -1767,7 +1766,7 @@ function PatientDetails() {
                                 : (MEDICINES_LIST.includes(service.name) ? service.name : '')
                             }
                             onChange={(e) => handleSelectMedicineService(service.id, e.target.value)}
-                            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #94a3b8' }}
+                            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #94a3b8', backgroundColor: 'white' }}
                           >
                             <option value="">Select medicine</option>
                             {MEDICINES_LIST.map((s) => (
@@ -1841,7 +1840,7 @@ function PatientDetails() {
               )}
             </div>
           </div>
-        )} */}
+        )}
 
         {/* Chatbot Tab */}
         {activeTab === 'chatbot' && (

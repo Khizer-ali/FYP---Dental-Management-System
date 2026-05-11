@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, timezone
 import enum
 
 db = SQLAlchemy()
@@ -17,7 +17,7 @@ class User(db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.Enum(UserRole), nullable=False, index=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     def to_dict(self):
         return {
@@ -39,8 +39,8 @@ class Patient(db.Model):
     cnic = db.Column(db.String(20), nullable=True)
     is_hidden = db.Column(db.Boolean, default=False, nullable=False)
     teeth_drawing = db.Column(db.Text, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     doctor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     
     # Relationships
@@ -50,6 +50,8 @@ class Patient(db.Model):
     images = db.relationship('MedicalImage', backref='patient', lazy=True, cascade='all, delete-orphan')
     dental_records = db.relationship('DentalAssessment', backref='patient', lazy=True, cascade='all, delete-orphan')
     prescriptions = db.relationship('Prescription', backref='patient', lazy=True, cascade='all, delete-orphan')
+    appointments = db.relationship('Appointment', back_populates='patient_rel', lazy=True, cascade='all, delete-orphan')
+    bills = db.relationship('Bill', backref='patient', lazy=True, cascade='all, delete-orphan')
     
     def to_dict(self):
         return {
@@ -69,12 +71,12 @@ class Document(db.Model):
     __tablename__ = 'documents'
     
     id = db.Column(db.Integer, primary_key=True)
-    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=False)
+    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=True)
     filename = db.Column(db.String(255), nullable=False)
     file_path = db.Column(db.String(500), nullable=False)
     parsed_text = db.Column(db.Text)
     document_type = db.Column(db.String(100))
-    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+    uploaded_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     
     def to_dict(self):
         return {
@@ -90,7 +92,7 @@ class Vital(db.Model):
     __tablename__ = 'vitals'
     
     id = db.Column(db.Integer, primary_key=True)
-    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=False)
+    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=True)
     temperature = db.Column(db.Float)
     weight = db.Column(db.Float)
     height = db.Column(db.Float)
@@ -99,7 +101,7 @@ class Vital(db.Model):
     heart_rate = db.Column(db.Integer)
     respiratory_rate = db.Column(db.Integer)
     oxygen_saturation = db.Column(db.Float)
-    recorded_at = db.Column(db.DateTime, default=datetime.utcnow)
+    recorded_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     
     def to_dict(self):
         return {
@@ -120,12 +122,12 @@ class FamilyHistory(db.Model):
     __tablename__ = 'family_history'
     
     id = db.Column(db.Integer, primary_key=True)
-    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=False)
+    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=True)
     condition = db.Column(db.String(200), nullable=False)
     relation = db.Column(db.String(100))
     age_of_onset = db.Column(db.Integer)
     notes = db.Column(db.Text)
-    recorded_at = db.Column(db.DateTime, default=datetime.utcnow)
+    recorded_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     
     def to_dict(self):
         return {
@@ -142,12 +144,12 @@ class MedicalImage(db.Model):
     __tablename__ = 'medical_images'
     
     id = db.Column(db.Integer, primary_key=True)
-    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=False)
+    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=True)
     filename = db.Column(db.String(255), nullable=False)
     file_path = db.Column(db.String(500), nullable=False)
     image_type = db.Column(db.String(100))
     description = db.Column(db.Text)
-    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+    uploaded_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     
     def to_dict(self):
         return {
@@ -166,10 +168,10 @@ class DentalAssessment(db.Model):
     )
     
     id = db.Column(db.Integer, primary_key=True)
-    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=False)
+    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=True)
     tooth_id = db.Column(db.String(20), nullable=False)
     condition = db.Column(db.String(2000), nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     def to_dict(self):
         return {
@@ -184,13 +186,12 @@ class Bill(db.Model):
     __tablename__ = 'bills'
     
     id = db.Column(db.Integer, primary_key=True)
-    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=True) # Nullable for guest bills if needed
+    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=True)
     invoice_number = db.Column(db.String(50), unique=True, nullable=False, index=True)
     staff_name = db.Column(db.String(200))
     appointment_date = db.Column(db.String(50))
     date = db.Column(db.String(50))
     
-    # Financial fields
     subtotal = db.Column(db.Float, default=0.0)
     discount_percent = db.Column(db.Float, default=0.0)
     discount_amount = db.Column(db.Float, default=0.0)
@@ -199,9 +200,8 @@ class Bill(db.Model):
     
     payment_method = db.Column(db.String(100), default="ONLINE BANK TRANSFER")
     payment_datetime = db.Column(db.String(100))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     
-    # Relationship
     items = db.relationship('BillItem', backref='bill', lazy=True, cascade='all, delete-orphan')
     
     def to_dict(self):
@@ -238,6 +238,7 @@ class BillItem(db.Model):
             'id': self.id,
             'bill_id': self.bill_id,
             'service_name': self.service_name,
+            'quantity': self.quantity,
             'price': self.price,
             'total': self.total
         }
@@ -246,19 +247,14 @@ class Appointment(db.Model):
     __tablename__ = 'appointments'
     
     id = db.Column(db.Integer, primary_key=True)
-    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=False)
+    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=True)
     appointment_datetime = db.Column(db.DateTime, nullable=False)
     alert_datetime = db.Column(db.DateTime, nullable=False)
-    
-    # Scheduled, Completed, Cancelled
     status = db.Column(db.String(50), default='Scheduled')
-    
-    # Pending, Sent, Failed
     sms_status = db.Column(db.String(50), default='Pending')
-    
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
-    # Note: adding a relationship to patient for easy access
+    # Fixed Relationship: uses back_populates to avoid conflicts
     patient_rel = db.relationship('Patient', backref='appointments', lazy=True)
 
     def to_dict(self):
@@ -290,7 +286,7 @@ class Prescription(db.Model):
     
     payment_method = db.Column(db.String(100), default="ONLINE BANK TRANSFER")
     payment_datetime = db.Column(db.String(100))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     
     items = db.relationship('PrescriptionItem', backref='prescription', lazy=True, cascade='all, delete-orphan')
     
@@ -328,7 +324,7 @@ class PrescriptionItem(db.Model):
             'id': self.id,
             'prescription_id': self.prescription_id,
             'medicine_name': self.medicine_name,
+            'quantity': self.quantity,
             'price': self.price,
             'total': self.total
         }
-
