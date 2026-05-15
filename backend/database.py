@@ -255,6 +255,7 @@ class Appointment(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Fixed Relationship: uses back_populates to avoid conflicts
+    patient_rel = db.relationship('Patient', back_populates='appointments', lazy=True)
     patient = db.relationship('Patient', back_populates='appointments', lazy=True)
 
     def to_dict(self):

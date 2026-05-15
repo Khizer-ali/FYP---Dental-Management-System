@@ -969,8 +969,10 @@ function PatientDetails() {
 
   const handleEditAppointment = (appt) => {
     // Format ISO string to datetime-local format (YYYY-MM-DDTHH:MM)
+    // Backend returns naive UTC string, so we append 'Z' if missing to explicitly tell JS it's UTC
     const formatForInput = (isoStr) => {
-      const date = new Date(isoStr);
+      const utcStr = isoStr.endsWith('Z') ? isoStr : isoStr + 'Z';
+      const date = new Date(utcStr);
       const tzOffset = date.getTimezoneOffset() * 60000;
       const localISODate = new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
       return localISODate;
@@ -982,7 +984,7 @@ function PatientDetails() {
     });
     setEditingAppointmentId(appt.id);
     // Scroll to form
-    const formEl = document.querySelector('.vitals-form');
+    const formEl = document.querySelector('.flash-card');
     if (formEl) formEl.scrollIntoView({ behavior: 'smooth' });
   };
 
@@ -1979,37 +1981,61 @@ function PatientDetails() {
               )}
             </div>
 
-            <form onSubmit={handleScheduleAppointment} className="vitals-form" style={{ marginBottom: '30px' }}>
-              <div className="form-group">
-                <label>Appointment Date & Time</label>
-                <input
-                  type="datetime-local"
-                  value={newAppointment.appointment_datetime}
-                  onChange={(e) => setNewAppointment({ ...newAppointment, appointment_datetime: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>When should the SMS Alert send?</label>
-                <input
-                  type="datetime-local"
-                  value={newAppointment.alert_datetime}
-                  onChange={(e) => setNewAppointment({ ...newAppointment, alert_datetime: e.target.value })}
-                  required
-                />
-                <small style={{ display: 'block', color: '#666', marginTop: '5px' }}>The system checks this time against the current time.</small>
-              </div>
-              <div className="form-actions" style={{ display: 'flex', gap: '10px' }}>
-                <button type="submit" className="btn-primary">
-                  {editingAppointmentId ? 'Update Appointment' : 'Schedule Appointment'}
-                </button>
-                {editingAppointmentId && (
-                  <button type="button" className="btn btn-secondary" onClick={handleCancelEdit}>
-                    Cancel Edit
+            <div className="flash-card" style={{
+              background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+              border: '1px solid #e2e8f0',
+              borderRadius: '20px',
+              padding: '30px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              maxWidth: '550px',
+              margin: '0 auto 40px auto'
+            }}>
+              <h3 style={{ textAlign: 'center', color: '#0f172a', marginBottom: '25px', fontSize: '1.6rem', fontWeight: 'bold' }}>
+                📅 Schedule Next Appointment
+              </h3>
+              <form onSubmit={handleScheduleAppointment} className="vitals-form" style={{ marginBottom: '0' }}>
+                <div className="form-group" style={{ marginBottom: '20px' }}>
+                  <label style={{ fontWeight: '600', color: '#334155', display: 'block', marginBottom: '8px' }}>Appointment Date & Time</label>
+                  <input
+                    type="datetime-local"
+                    value={newAppointment.appointment_datetime}
+                    onChange={(e) => {
+                      setNewAppointment({
+                        ...newAppointment,
+                        appointment_datetime: e.target.value,
+                        // Automatically link alert time to appointment time as requested
+                        alert_datetime: e.target.value
+                      });
+                    }}
+                    required
+                    style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '1rem', backgroundColor: '#fff', boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.02)' }}
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: '25px' }}>
+                  <label style={{ fontWeight: '600', color: '#334155', display: 'block', marginBottom: '8px' }}>Exact Reminder Notification Time</label>
+                  <input
+                    type="datetime-local"
+                    value={newAppointment.alert_datetime}
+                    onChange={(e) => setNewAppointment({ ...newAppointment, alert_datetime: e.target.value })}
+                    required
+                    style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '1rem', backgroundColor: '#fff', boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.02)' }}
+                  />
+                  <small style={{ display: 'block', color: '#64748b', marginTop: '8px', lineHeight: '1.4' }}>
+                    Notification will be sent successfully on this exact selected time to the patient's verified phone number.
+                  </small>
+                </div>
+                <div className="form-actions" style={{ display: 'flex', gap: '15px' }}>
+                  <button type="submit" className="btn-primary" style={{ flex: 1, padding: '14px', fontSize: '1.1rem', borderRadius: '12px', background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', border: 'none', color: '#fff', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.3)' }}>
+                    {editingAppointmentId ? 'Update Booking' : 'Confirm Booking'}
                   </button>
-                )}
-              </div>
-            </form>
+                  {editingAppointmentId && (
+                    <button type="button" className="btn btn-secondary" onClick={handleCancelEdit} style={{ flex: 1, padding: '14px', fontSize: '1.1rem', borderRadius: '12px', backgroundColor: '#e2e8f0', color: '#475569', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </form>
+            </div>
 
             <div className="data-list">
               <h3>Upcoming & Past Appointments</h3>
@@ -2020,10 +2046,10 @@ function PatientDetails() {
                   {appointments.map(appt => (
                     <div key={appt.id} className="data-item" style={{ display: 'flex', justifyContent: 'space-between', padding: '15px' }}>
                       <div>
-                        <strong>Date:</strong> {new Date(appt.appointment_datetime).toLocaleString()}
+                        <strong>Date:</strong> {new Date(appt.appointment_datetime + (appt.appointment_datetime.endsWith('Z') ? '' : 'Z')).toLocaleString()}
                         <br />
                         <span style={{ fontSize: '0.9em', color: '#555' }}>
-                          <strong>Alert set for:</strong> {new Date(appt.alert_datetime).toLocaleString()}
+                          <strong>Alert set for:</strong> {new Date(appt.alert_datetime + (appt.alert_datetime.endsWith('Z') ? '' : 'Z')).toLocaleString()}
                         </span>
                       </div>
                       <div style={{ textAlign: 'right' }}>

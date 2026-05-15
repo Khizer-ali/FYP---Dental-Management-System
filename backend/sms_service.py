@@ -18,11 +18,39 @@ class SmsSendResult:
 
 
 def _twilio_is_configured() -> bool:
-    return bool(
-        os.environ.get("TWILIO_ACCOUNT_SID")
-        and os.environ.get("TWILIO_AUTH_TOKEN")
-        and os.environ.get("TWILIO_FROM_NUMBER")
-    )
+    sid = os.environ.get("TWILIO_ACCOUNT_SID")
+    token = os.environ.get("TWILIO_AUTH_TOKEN")
+    api_key = os.environ.get("TWILIO_API_KEY")
+    api_secret = os.environ.get("TWILIO_API_SECRET")
+    phone = os.environ.get("TWILIO_PHONE_NUMBER")
+
+    if not sid or not phone:
+        return False
+
+    # Check for valid auth token (not a placeholder)
+    has_valid_token = bool(token and "your_auth_token" not in token and "xxxx" not in token)
+    
+    # Check for valid API keys (not placeholders)
+    has_valid_keys = bool(api_key and api_secret and "your_api" not in api_key and "xxxx" not in api_key)
+
+    return has_valid_token or has_valid_keys
+
+import re
+def format_phone_number(phone: str) -> str:
+    if not phone:
+        return phone
+    # Remove all non-numeric characters except +
+    clean = re.sub(r'[^\d+]', '', phone)
+    
+    if clean.startswith('+92'):
+        return clean
+    if clean.startswith('03') and len(clean) == 11:
+        return '+92' + clean[1:]
+    if clean.startswith('923') and len(clean) == 12:
+        return '+' + clean
+    if not clean.startswith('+'):
+        return '+' + clean
+    return clean
 
 
 def send_sms(to_number: str, body: str) -> SmsSendResult:
@@ -50,10 +78,26 @@ def send_sms(to_number: str, body: str) -> SmsSendResult:
         )
         return SmsSendResult(ok=True, provider="stub", error=f"Twilio import failed: {str(e)}")
 
+    to_number = format_phone_number(to_number)
+
     try:
-        client = Client(os.environ["TWILIO_ACCOUNT_SID"], os.environ["TWILIO_AUTH_TOKEN"])
+        # Support both standard auth and API Key auth
+        api_key = os.environ.get("TWILIO_API_KEY")
+        api_secret = os.environ.get("TWILIO_API_SECRET")
+        
+        if api_key and api_secret:
+            client = Client(
+                api_key, 
+                api_secret, 
+                os.environ["TWILIO_ACCOUNT_SID"]
+            )
+        else:
+            client = Client(
+                os.environ["TWILIO_ACCOUNT_SID"], 
+                os.environ["TWILIO_AUTH_TOKEN"]
+            )
         msg = client.messages.create(
-            from_=os.environ["TWILIO_FROM_NUMBER"],
+            from_=os.environ["TWILIO_PHONE_NUMBER"],
             to=to_number,
             body=body,
         )

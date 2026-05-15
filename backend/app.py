@@ -6,6 +6,7 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import os
 import re
+
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import uuid
@@ -15,6 +16,8 @@ from agents.master_agent import MasterAgent
 from sms_service import send_sms
 from routes.auth_routes import auth_bp
 from routes.user_routes import user_bp
+
+from apscheduler.schedulers.background import BackgroundScheduler
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -722,36 +725,48 @@ def get_all_bills():
         
     return jsonify(result)
 
+def check_and_send_sms_alerts():
+    """Background task to check for pending SMS alerts and send them"""
+    with app.app_context():
+        now = datetime.utcnow()
+        
+        # Find all appointments where the alert time has passed and sms_status is still Pending
+        pending_alerts = Appointment.query.filter(
+            Appointment.alert_datetime <= now,
+            Appointment.sms_status == 'Pending'
+        ).all()
+        
+        sent_count = 0
+        for appt in pending_alerts:
+            patient = Patient.query.get(appt.patient_id)
+            if patient and patient.phone_number:
+                doctor = User.query.get(patient.doctor_id)
+                doctor_name = doctor.name if doctor else "your doctor"
+                body = (
+                    f"Hello {patient.name}, this is a reminder for your appointment with Dr. {doctor_name} "
+                    f"on {appt.appointment_datetime.strftime('%Y-%m-%d')} at {appt.appointment_datetime.strftime('%H:%M')}."
+                )
+                result = send_sms(patient.phone_number, body)
+                if result.ok:
+                    appt.sms_status = 'Sent'
+                    sent_count += 1
+                else:
+                    appt.sms_status = f"Failed - {result.provider}: {result.error}"
+            else:
+                appt.sms_status = 'Failed - No Phone'
+        
+        db.session.commit()
+        return sent_count
+
+# Start background scheduler
+scheduler = BackgroundScheduler()
+scheduler.add_job(func=check_and_send_sms_alerts, trigger="interval", seconds=60)
+scheduler.start()
+
 @app.route('/api/cron/send-sms', methods=['POST'])
 def trigger_sms_alerts():
-    """Stubbed mechanism to check for pending SMS alerts and "send" them"""
-    now = datetime.utcnow()
-    
-    # Find all appointments where the alert time has passed and sms_status is still Pending
-    pending_alerts = Appointment.query.filter(
-        Appointment.alert_datetime <= now,
-        Appointment.sms_status == 'Pending'
-    ).all()
-    
-    sent_count = 0
-    for appt in pending_alerts:
-        patient = Patient.query.get(appt.patient_id)
-        if patient and patient.phone_number:
-            body = (
-                f"Hello {patient.name}, you have an appointment on "
-                f"{appt.appointment_datetime.strftime('%Y-%m-%d %H:%M')}."
-            )
-            result = send_sms(patient.phone_number, body)
-            if result.ok:
-                appt.sms_status = 'Sent'
-                sent_count += 1
-            else:
-                appt.sms_status = f"Failed - {result.provider}"
-        else:
-            # If patient has no phone number, we mark it failed or just sent anyway (so we don't keep retrying)
-            appt.sms_status = 'Failed - No Phone'
-    
-    db.session.commit()
+    """Endpoint to manually trigger SMS alerts check"""
+    sent_count = check_and_send_sms_alerts()
     return jsonify({'status': 'success', 'alerts_processed': sent_count})
 
 # Serve uploaded files

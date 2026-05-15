@@ -32,3 +32,4 @@ psycopg2-binary>=2.9.0
 # Windows: Download from https://github.com/UB-Mannheim/tesseract/wiki
 # macOS: brew install tesseract
 # Linux: sudo apt-get install tesseract-ocr
+APScheduler>=3.10.0
