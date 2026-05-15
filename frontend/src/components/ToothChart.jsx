@@ -161,6 +161,7 @@ const ToothChart = ({ patientId, initialTeethData = {} }) => {
 
     // Notes state
     const [notes, setNotes] = useState(initialTeethData['general_notes'] || '');
+    const [selectedNoteOption, setSelectedNoteOption] = useState('');
 
     // X-Ray State
     const [xRays, setXRays] = useState([]);
@@ -376,6 +377,19 @@ const ToothChart = ({ patientId, initialTeethData = {} }) => {
 
                 {activeSubTab === 'notes' && (
                     <div className="tab-content-area">
+                        <div style={{ marginBottom: '15px' }}>
+                            <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', color: '#334155' }}>Note Template:</label>
+                            <select
+                                value={selectedNoteOption}
+                                onChange={(e) => setSelectedNoteOption(e.target.value)}
+                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #94a3b8', backgroundColor: 'white', color: '#1e293b' }}
+                            >
+                                <option value="">Select a template...</option>
+                                <option value="option1">Option 1</option>
+                                <option value="option2">Option 2</option>
+                                <option value="option3">Option 3</option>
+                            </select>
+                        </div>
                         <textarea
                             className="notes-textarea"
                             placeholder="Type general dental notes, treatment plans, or patient specific findings here..."

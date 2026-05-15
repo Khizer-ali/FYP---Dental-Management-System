@@ -26,6 +26,8 @@ function PatientDetails() {
 
   const [documents, setDocuments] = useState([]);
   const [vitals, setVitals] = useState([]);
+  const [editingVitalId, setEditingVitalId] = useState(null);
+  const [viewingVitalId, setViewingVitalId] = useState(null);
   const [familyHistory, setFamilyHistory] = useState([]);
   const [images, setImages] = useState([]);
   const [teethData, setTeethData] = useState({});
@@ -220,6 +222,39 @@ function PatientDetails() {
     }
   };
 
+  const handleImageUploadInDocuments = async (e) => {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append('file', documentForm.file);
+    formData.append('image_type', documentForm.document_type || 'Medical Image');
+    formData.append('description', 'Uploaded from documents section');
+
+    try {
+      const response = await fetch(`${API_BASE}/patients/${patientId}/images`, {
+        method: 'POST',
+        body: formData
+      });
+
+      let result;
+      try {
+        result = await response.json();
+      } catch (e) {
+        result = { error: 'Server returned an invalid response. Please check if the server is running.' };
+      }
+
+      if (response.ok) {
+        showMessage('documentMessage', 'Image uploaded successfully!', 'success');
+        setDocumentForm({ file: null, document_type: 'Medical Report' });
+        e.target.reset();
+        loadDocuments();
+      } else {
+        showMessage('documentMessage', result.error || 'Error uploading image', 'error');
+      }
+    } catch (error) {
+      showMessage('documentMessage', 'Network error: ' + error.message, 'error');
+    }
+  };
+
   const loadDocuments = async () => {
     try {
       const [docsRes, imagesRes] = await Promise.all([
@@ -315,6 +350,86 @@ function PatientDetails() {
     } catch (error) {
       console.error('Error loading vitals:', error);
     }
+  };
+
+  const handleDeleteVital = async (vitalId) => {
+    if (!window.confirm('Are you sure you want to delete this vital record?')) return;
+    try {
+      const response = await fetch(`${API_BASE}/vitals/${vitalId}`, { method: 'DELETE' });
+      if (response.ok) {
+        showMessage('vitalsMessage', 'Vital record deleted successfully', 'success');
+        loadVitals();
+      } else {
+        const data = await response.json();
+        showMessage('vitalsMessage', data.error || 'Error deleting vital record', 'error');
+      }
+    } catch (error) {
+      showMessage('vitalsMessage', 'Network error: ' + error.message, 'error');
+    }
+  };
+
+  const handleEditVital = (vital) => {
+    setEditingVitalId(vital.id);
+    // Populate the form with the vital's data
+    const form = document.getElementById('vitalsForm');
+    if (form) {
+      form.temperature.value = vital.temperature || '';
+      form.weight.value = vital.weight || '';
+      form.height.value = vital.height || '';
+      form.blood_pressure_systolic.value = vital.blood_pressure_systolic || '';
+      form.blood_pressure_diastolic.value = vital.blood_pressure_diastolic || '';
+      form.heart_rate.value = vital.heart_rate || '';
+      form.respiratory_rate.value = vital.respiratory_rate || '';
+      form.oxygen_saturation.value = vital.oxygen_saturation || '';
+    }
+    // Scroll to form
+    const formEl = document.getElementById('vitals');
+    if (formEl) formEl.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleViewVital = (vital) => {
+    setViewingVitalId(vital.id);
+  };
+
+  const handleUpdateVital = async (e) => {
+    e.preventDefault();
+    if (!editingVitalId) return;
+    
+    const formData = Object.fromEntries(new FormData(e.target));
+    
+    try {
+      const response = await fetch(`${API_BASE}/vitals/${editingVitalId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+
+      let result;
+      try {
+        result = await response.json();
+      } catch (e) {
+        result = { error: 'Server returned an invalid response.' };
+      }
+
+      if (response.ok) {
+        showMessage('vitalsMessage', 'Vital record updated successfully!', 'success');
+        setEditingVitalId(null);
+        e.target.reset();
+        loadVitals();
+      } else {
+        showMessage('vitalsMessage', result.error || 'Error updating vital record', 'error');
+      }
+    } catch (error) {
+      showMessage('vitalsMessage', 'Network error: ' + error.message, 'error');
+    }
+  };
+
+  const cancelEditVital = () => {
+    setEditingVitalId(null);
+    const form = document.getElementById('vitalsForm');
+    if (form) form.reset();
   };
 
   // Family History
@@ -780,6 +895,22 @@ function PatientDetails() {
     }
   };
 
+  const handleDeleteMedicine = async (medicineId) => {
+    if (!window.confirm('Are you sure you want to delete this prescription?')) return;
+    try {
+      const response = await fetch(`${API_BASE}/prescriptions/${medicineId}`, { method: 'DELETE' });
+      if (response.ok) {
+        showMessage('medicineMessage', 'Prescription deleted successfully', 'success');
+        loadMedicines();
+      } else {
+        const data = await response.json();
+        showMessage('medicineMessage', data.error || 'Error deleting prescription', 'error');
+      }
+    } catch (error) {
+      showMessage('medicineMessage', 'Network error: ' + error.message, 'error');
+    }
+  };
+
   // ----------------------------------------------------
 
   // Appointments handlers
@@ -1031,12 +1162,12 @@ function PatientDetails() {
               <h3>Upload Medical Document</h3>
               <form id="documentForm" onSubmit={handleDocumentSubmit} encType="multipart/form-data">
                 <div className="form-group">
-                  <label htmlFor="documentFile">Select Document (PDF, TXT, Images)</label>
+                  <label htmlFor="documentFile">Select Document (PDF, TXT)</label>
                   <input
                     type="file"
                     id="documentFile"
                     name="file"
-                    accept=".pdf,.txt,.png,.jpg,.jpeg"
+                    accept=".pdf,.txt"
                     required
                     onChange={(e) => setDocumentForm({ ...documentForm, file: e.target.files[0] })}
                   />
@@ -1053,6 +1184,35 @@ function PatientDetails() {
                   />
                 </div>
                 <button type="submit" className="btn-primary">Upload & Parse Document</button>
+              </form>
+            </div>
+
+            <div className="form-section" style={{ marginTop: '20px' }}>
+              <h3>Upload Image</h3>
+              <form id="imageForm" onSubmit={handleImageUploadInDocuments} encType="multipart/form-data">
+                <div className="form-group">
+                  <label htmlFor="imageFile">Select Image (PNG, JPG, JPEG, GIF)</label>
+                  <input
+                    type="file"
+                    id="imageFile"
+                    name="file"
+                    accept=".png,.jpg,.jpeg,.gif"
+                    required
+                    onChange={(e) => setDocumentForm({ ...documentForm, file: e.target.files[0] })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="imageType">Image Type</label>
+                  <input
+                    type="text"
+                    id="imageType"
+                    name="image_type"
+                    placeholder="e.g., X-Ray, Photo, Scan"
+                    value={documentForm.document_type}
+                    onChange={(e) => setDocumentForm({ ...documentForm, document_type: e.target.value })}
+                  />
+                </div>
+                <button type="submit" className="btn-primary">Upload Image</button>
               </form>
               {messages.documentMessage && (
                 <div id="documentMessage" className={`message ${messages.documentMessage.type}`}>
@@ -1130,8 +1290,8 @@ function PatientDetails() {
         {activeTab === 'vitals' && (
           <div id="vitals" className="tab-content active">
             <div className="form-section">
-              <h3>Record Vital Signs</h3>
-              <form id="vitalsForm" onSubmit={handleVitalsSubmit}>
+              <h3>{editingVitalId ? 'Edit Vital Signs' : 'Record Vital Signs'}</h3>
+              <form id="vitalsForm" onSubmit={editingVitalId ? handleUpdateVital : handleVitalsSubmit}>
                 <div className="form-grid">
                   <div className="form-group">
                     <label htmlFor="temperature">Temperature (°C)</label>
@@ -1166,7 +1326,10 @@ function PatientDetails() {
                     <input type="number" id="oxygenSaturation" name="oxygen_saturation" step="0.1" placeholder="98.0" />
                   </div>
                 </div>
-                <button type="submit" className="btn-primary">Record Vitals</button>
+                <button type="submit" className="btn-primary">{editingVitalId ? 'Update Vitals' : 'Record Vitals'}</button>
+                {editingVitalId && (
+                  <button type="button" className="btn btn-secondary" onClick={cancelEditVital} style={{ marginLeft: '10px' }}>Cancel Edit</button>
+                )}
               </form>
               {messages.vitalsMessage && (
                 <div id="vitalsMessage" className={`message ${messages.vitalsMessage.type}`}>
@@ -1180,16 +1343,49 @@ function PatientDetails() {
               ) : (
                 vitals.map(vital => (
                   <div key={vital.id} className="data-item">
-                    <h4>Recorded: {new Date(vital.recorded_at).toLocaleString()}</h4>
-                    {vital.temperature && <p><strong>Temperature:</strong> {vital.temperature}°C</p>}
-                    {vital.weight && <p><strong>Weight:</strong> {vital.weight} kg</p>}
-                    {vital.height && <p><strong>Height:</strong> {vital.height} cm</p>}
-                    {vital.blood_pressure_systolic && (
-                      <p><strong>Blood Pressure:</strong> {vital.blood_pressure_systolic}/{vital.blood_pressure_diastolic || ''} mmHg</p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div style={{ flex: 1 }}>
+                        <h4>Recorded: {new Date(vital.recorded_at).toLocaleString()}</h4>
+                        {vital.temperature && <p><strong>Temperature:</strong> {vital.temperature}°C</p>}
+                        {vital.weight && <p><strong>Weight:</strong> {vital.weight} kg</p>}
+                        {vital.height && <p><strong>Height:</strong> {vital.height} cm</p>}
+                        {vital.blood_pressure_systolic && (
+                          <p><strong>Blood Pressure:</strong> {vital.blood_pressure_systolic}/{vital.blood_pressure_diastolic || ''} mmHg</p>
+                        )}
+                        {vital.heart_rate && <p><strong>Heart Rate:</strong> {vital.heart_rate} bpm</p>}
+                        {vital.respiratory_rate && <p><strong>Respiratory Rate:</strong> {vital.respiratory_rate} per min</p>}
+                        {vital.oxygen_saturation && <p><strong>Oxygen Saturation:</strong> {vital.oxygen_saturation}%</p>}
+                      </div>
+                      <div style={{ display: 'flex', gap: '5px', flexShrink: 0 }}>
+                        <button className="btn btn-secondary" onClick={() => handleViewVital(vital)} style={{ fontSize: '12px', padding: '5px 10px' }}>
+                          👁️ View
+                        </button>
+                        <button className="btn btn-secondary" onClick={() => handleEditVital(vital)} style={{ fontSize: '12px', padding: '5px 10px' }}>
+                          ✏️ Edit
+                        </button>
+                        <button className="btn btn-danger" onClick={() => handleDeleteVital(vital.id)} style={{ fontSize: '12px', padding: '5px 10px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                          🗑️ Delete
+                        </button>
+                      </div>
+                    </div>
+                    {viewingVitalId === vital.id && (
+                      <div style={{ marginTop: '15px', padding: '15px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                        <h5 style={{ margin: '0 0 10px 0' }}>Full Vital Details</h5>
+                        <p><strong>Recorded At:</strong> {new Date(vital.recorded_at).toLocaleString()}</p>
+                        {vital.temperature && <p><strong>Temperature:</strong> {vital.temperature}°C</p>}
+                        {vital.weight && <p><strong>Weight:</strong> {vital.weight} kg</p>}
+                        {vital.height && <p><strong>Height:</strong> {vital.height} cm</p>}
+                        {vital.blood_pressure_systolic && (
+                          <p><strong>Blood Pressure:</strong> {vital.blood_pressure_systolic}/{vital.blood_pressure_diastolic || ''} mmHg</p>
+                        )}
+                        {vital.heart_rate && <p><strong>Heart Rate:</strong> {vital.heart_rate} bpm</p>}
+                        {vital.respiratory_rate && <p><strong>Respiratory Rate:</strong> {vital.respiratory_rate} per min</p>}
+                        {vital.oxygen_saturation && <p><strong>Oxygen Saturation:</strong> {vital.oxygen_saturation}%</p>}
+                        <button className="btn btn-secondary" onClick={() => setViewingVitalId(null)} style={{ fontSize: '12px', padding: '5px 10px', marginTop: '10px' }}>
+                          Close
+                        </button>
+                      </div>
                     )}
-                    {vital.heart_rate && <p><strong>Heart Rate:</strong> {vital.heart_rate} bpm</p>}
-                    {vital.respiratory_rate && <p><strong>Respiratory Rate:</strong> {vital.respiratory_rate} per min</p>}
-                    {vital.oxygen_saturation && <p><strong>Oxygen Saturation:</strong> {vital.oxygen_saturation}%</p>}
                   </div>
                 ))
               )}
@@ -1599,6 +1795,7 @@ function PatientDetails() {
                       type="text"
                       value={medicineDetails.invoice_number || ''}
                       onChange={(e) => setMedicineDetails({ ...medicineDetails, invoice_number: e.target.value })}
+                      style={{ color: '#1e293b', fontWeight: '500', fontSize: '14px' }}
                     />
                   </div>
                 </div>
@@ -1611,10 +1808,9 @@ function PatientDetails() {
 
                   {medicineServices.map((service, index) => (
                     <div key={service.id} className="prescription-item">
-                      <button type="button" className="prescription-remove-btn" onClick={() => removeMedicineRow(service.id)}>✕</button>
                       <div className="prescription-item-header">
                         <span className="prescription-item-number">{index + 1}.</span>
-                        <div style={{ flex: 1 }}>
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <select
                             value={service.isCustom ? '__custom__' : (MEDICINES_LIST.includes(service.name) ? service.name : '')}
                             onChange={(e) => {
@@ -1636,19 +1832,44 @@ function PatientDetails() {
                             <option value="__custom__">Custom…</option>
                           </select>
 
+                          {medicineServices.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeMedicineRow(service.id)}
+                              style={{
+                                width: '36px',
+                                height: '36px',
+                                minWidth: '36px',
+                                minHeight: '36px',
+                                borderRadius: '6px',
+                                border: '1px solid #ef4444',
+                                backgroundColor: '#ef4444',
+                                color: 'white',
+                                fontSize: '18px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0
+                              }}
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
                           {service.isCustom && (
                             <input
                               type="text"
                               value={service.name}
                               onChange={(e) => handleMedicineServiceChange(service.id, 'name', e.target.value)}
                               placeholder="Enter medicine name"
-                              style={{ marginTop: '10px', width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #94a3b8', color: '#1e293b', fontWeight: 'bold' }}
+                              style={{ marginTop: '10px', width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #94a3b8', color: '#1e293b', fontWeight: 'bold', backgroundColor: 'white' }}
                               autoFocus
                             />
                           )}
-                        </div>
-                      </div>
-
                                           </div>
                   ))}
 
@@ -1693,9 +1914,14 @@ function PatientDetails() {
                   <div key={medicine.id} className="data-item">
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <h4>{medicine.invoice_number}</h4>
-                      <button className="btn btn-secondary" onClick={() => handleEditMedicine(medicine)} style={{ fontSize: '12px', padding: '5px 10px' }}>
-                        ✏️ Edit
-                      </button>
+                      <div style={{ display: 'flex', gap: '5px' }}>
+                        <button className="btn btn-secondary" onClick={() => handleEditMedicine(medicine)} style={{ fontSize: '12px', padding: '5px 10px' }}>
+                          ✏️ Edit
+                        </button>
+                        <button className="btn btn-danger" onClick={() => handleDeleteMedicine(medicine.id)} style={{ fontSize: '12px', padding: '5px 10px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                          🗑️ Delete
+                        </button>
+                      </div>
                     </div>
                     <p><strong>Date:</strong> {medicine.date}</p>
                     <ul style={{ paddingLeft: '20px', color: '#334155' }}>
@@ -1703,138 +1929,6 @@ function PatientDetails() {
                         <li key={idx}><strong>{item.medicine_name}</strong></li>
                       ))}
                     </ul>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        )}
-        {activeTab === 'medicine' && (
-          <div id="medicine" className="tab-content active">
-            {messages.medicineMessage && (
-              <div id="medicineMessage" className={`message ${messages.medicineMessage.type}`} style={{ marginBottom: '20px' }}>
-                {messages.medicineMessage.text}
-              </div>
-            )}
-
-            <div className="prescription-container">
-              <div className="prescription-header">
-                <div className="prescription-logo-section">
-                  <div style={{ fontSize: '40px' }}>🦷</div>
-                  <h1>FYP DENTAL<br />MANAGEMENT SYSTEM</h1>
-                </div>
-                <div className="prescription-contact-info">
-                  <h3>ISLAMABAD DENTAL CARE</h3>
-                  <p>20 Rival, ISLAMABAD</p>
-                  <p>M: (803) 2110-0000</p>
-                </div>
-              </div>
-
-              <div className="prescription-section">
-                <div className="prescription-section-title">PATIENT DETAILS</div>
-                <div className="prescription-section-content">
-                  <div className="prescription-field">
-                    <label>Name</label>
-                    <input type="text" value={patientData.name} readOnly />
-                  </div>
-                  <div className="prescription-field">
-                    <label>Patient in</label>
-                    <input
-                      type="text"
-                      value={medicineDetails.invoice_number}
-                      onChange={(e) => setMedicineDetails({ ...medicineDetails, invoice_number: e.target.value })}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="prescription-section">
-                <div className="prescription-section-title">PRESCRIPTION</div>
-                <div style={{ padding: '20px' }}>
-                  <div className="rx-symbol">Rx</div>
-
-                  {medicineServices.map((service, index) => (
-                    <div key={service.id} className="prescription-item">
-                      <button className="prescription-remove-btn" onClick={() => removeMedicineRow(service.id)}>✕</button>
-                      <div className="prescription-item-header">
-                        <span className="prescription-item-number">{index + 1}.</span>
-                        <div style={{ flex: 1 }}>
-                          <select
-                            value={
-                              service.isCustom
-                                ? '__custom__'
-                                : (MEDICINES_LIST.includes(service.name) ? service.name : '')
-                            }
-                            onChange={(e) => handleSelectMedicineService(service.id, e.target.value)}
-                            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #94a3b8', backgroundColor: 'white' }}
-                          >
-                            <option value="">Select medicine</option>
-                            {MEDICINES_LIST.map((s) => (
-                              <option key={s} value={s}>
-                                {s}
-                              </option>
-                            ))}
-                            <option value="__custom__">Custom…</option>
-                          </select>
-
-                          {service.isCustom && (
-                            <input
-                              type="text"
-                              value={service.name}
-                              onChange={(e) => handleMedicineServiceChange(service.id, 'name', e.target.value)}
-                              placeholder="Custom medicine"
-                              style={{ marginTop: '10px', width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #94a3b8' }}
-                            />
-                          )}
-                        </div>
-                        <div className="prescription-checkmark">✓</div>
-                      </div>
-
-                                          </div>
-                  ))}
-
-                  <button
-                    className="invoice-add-service-btn"
-                    onClick={addMedicineRow}
-                    style={{ margin: '10px auto', display: 'block', width: '40px', height: '40px', fontSize: '24px' }}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-
-              <div className="invoice-controls">
-                <button className="invoice-btn invoice-save-btn" onClick={saveMedicine}>💾 {editingMedicineId ? 'Update' : 'Save'}</button>
-                {editingMedicineId && (
-                  <button className="invoice-btn btn-secondary" onClick={cancelEditMedicine} style={{ marginLeft: '10px' }}>Cancel Edit</button>
-                )}
-                <button className="invoice-btn print-btn" onClick={() => window.print()}>🖨️ Print</button>
-              </div>
-            </div>
-
-            <div className="data-list" style={{ marginTop: '40px' }}>
-              <h3>Previous Medicines</h3>
-              {medicines.length === 0 ? (
-                <p>No medicines saved yet.</p>
-              ) : (
-                medicines.map(medicine => (
-                  <div key={medicine.id} className="data-item">
-                    <h4>{medicine.invoice_number}</h4>
-                    <p><strong>Date:</strong> {medicine.date} | <strong>Staff:</strong> {medicine.staff_name || 'N/A'}</p>
-                    <div style={{ marginTop: '10px' }}>
-                      <ul style={{ margin: '0', paddingLeft: '20px', fontSize: '0.9em', color: '#555' }}>
-                        {medicine.items.map((item, idx) => (
-                          <li key={idx}>
-                            <strong>{item.medicine_name}</strong>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div style={{ marginTop: '10px' }}>
-                      <button className="btn btn-secondary" onClick={() => handleEditMedicine(medicine)} style={{ fontSize: '12px', padding: '5px 10px' }}>
-                        ✏️ Edit
-                      </button>
-                    </div>
                   </div>
                 ))
               )}

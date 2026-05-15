@@ -50,7 +50,7 @@ class Patient(db.Model):
     images = db.relationship('MedicalImage', backref='patient', lazy=True, cascade='all, delete-orphan')
     dental_records = db.relationship('DentalAssessment', backref='patient', lazy=True, cascade='all, delete-orphan')
     prescriptions = db.relationship('Prescription', backref='patient', lazy=True, cascade='all, delete-orphan')
-    appointments = db.relationship('Appointment', back_populates='patient_rel', lazy=True, cascade='all, delete-orphan')
+    appointments = db.relationship('Appointment', back_populates='patient', lazy=True, cascade='all, delete-orphan')
     bills = db.relationship('Bill', backref='patient', lazy=True, cascade='all, delete-orphan')
     
     def to_dict(self):
@@ -255,7 +255,7 @@ class Appointment(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Fixed Relationship: uses back_populates to avoid conflicts
-    patient_rel = db.relationship('Patient', backref='appointments', lazy=True)
+    patient = db.relationship('Patient', back_populates='appointments', lazy=True)
 
     def to_dict(self):
         return {
