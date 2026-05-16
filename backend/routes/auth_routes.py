@@ -1,3 +1,4 @@
+# pyrefly: ignore [missing-import]
 from flask import Blueprint, request, jsonify
 from database import db, User, UserRole
 from auth_utils import (
@@ -95,7 +96,8 @@ def login():
     if not user.is_active:
         return jsonify({'detail': 'User account is disabled.'}), 403
         
-    token_data = create_access_token(subject=user.id, role=user.role.value)
+    role_val = user.role.value if hasattr(user.role, 'value') else user.role
+    token_data = create_access_token(subject=user.id, role=role_val)
     return jsonify({
         'access_token': token_data['access_token'],
         'expires_at': token_data['expires_at'].isoformat(),

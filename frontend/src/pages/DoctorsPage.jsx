@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/doctors.css';
+import { fetchJson } from '../utils/fetchJson';
 
 const AUTH_BASE = import.meta.env.VITE_AUTH_BASE || '';
 
@@ -38,7 +39,7 @@ function DoctorsPage() {
     const loadDoctors = useCallback(async () => {
         if (!token) { setLoading(false); return; }
         try {
-            const res = await fetch(`${AUTH_BASE}/users/`, {
+            const { res, data } = await fetchJson(`${AUTH_BASE}/users/`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             if (res.status === 401) {
@@ -47,14 +48,13 @@ function DoctorsPage() {
                 navigate('/');
                 return;
             }
-            if (res.ok) {
-                const data = await res.json();
+            if (res.ok && Array.isArray(data)) {
                 setDoctors(data);
             } else {
                 showMessage('Failed to load users.', 'error');
             }
-        } catch {
-            showMessage('Cannot connect to auth service (port 5000).', 'error');
+        } catch (e) {
+            showMessage(e.code === 'BAD_JSON' ? e.message : 'Cannot connect to auth service (port 5000).', 'error');
         } finally {
             setLoading(false);
         }
@@ -66,22 +66,21 @@ function DoctorsPage() {
         e.preventDefault();
         setCreating(true);
         try {
-            const res = await fetch(`${AUTH_BASE}/auth/create_doctor`, {
+            const { res, data } = await fetchJson(`${AUTH_BASE}/auth/create_doctor`, {
                 method: 'POST',
                 headers: authHeaders(),
                 body: JSON.stringify(createForm),
             });
-            const data = await res.json();
             if (!res.ok) {
-                showMessage(data.detail || 'Failed to create doctor.', 'error');
+                showMessage(data?.detail || 'Failed to create doctor.', 'error');
                 return;
             }
             showMessage(`Doctor "${data.name}" created successfully!`, 'success');
             setCreateForm({ name: '', email: '', password: '' });
             setShowCreateForm(false);
             loadDoctors();
-        } catch {
-            showMessage('Network error. Is the auth service running?', 'error');
+        } catch (e) {
+            showMessage(e.code === 'BAD_JSON' ? e.message : 'Network error. Is the auth service running?', 'error');
         } finally {
             setCreating(false);
         }
@@ -89,7 +88,7 @@ function DoctorsPage() {
 
     const handleToggleActive = async (user) => {
         try {
-            const res = await fetch(`${AUTH_BASE}/users/${user.id}`, {
+            const { res, data } = await fetchJson(`${AUTH_BASE}/users/${user.id}`, {
                 method: 'PATCH',
                 headers: authHeaders(),
                 body: JSON.stringify({ is_active: !user.is_active }),
@@ -98,30 +97,28 @@ function DoctorsPage() {
                 showMessage(`${user.name} ${!user.is_active ? 'activated' : 'deactivated'}.`, 'success');
                 loadDoctors();
             } else {
-                const d = await res.json();
-                showMessage(d.detail || 'Update failed.', 'error');
+                showMessage(data?.detail || 'Update failed.', 'error');
             }
-        } catch {
-            showMessage('Network error.', 'error');
+        } catch (e) {
+            showMessage(e.code === 'BAD_JSON' ? e.message : 'Network error.', 'error');
         }
     };
 
     const handleDelete = async (user) => {
         if (!window.confirm(`Delete account for "${user.name}" (${user.email})? This cannot be undone.`)) return;
         try {
-            const res = await fetch(`${AUTH_BASE}/users/${user.id}`, {
+            const { res, data } = await fetchJson(`${AUTH_BASE}/users/${user.id}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${token}` },
             });
-            if (res.status === 204) {
+            if (res.status === 204 || res.ok) {
                 showMessage(`${user.name}'s account deleted.`, 'success');
                 loadDoctors();
             } else {
-                const d = await res.json();
-                showMessage(d.detail || 'Delete failed.', 'error');
+                showMessage(data?.detail || 'Delete failed.', 'error');
             }
-        } catch {
-            showMessage('Network error.', 'error');
+        } catch (e) {
+            showMessage(e.code === 'BAD_JSON' ? e.message : 'Network error.', 'error');
         }
     };
 
