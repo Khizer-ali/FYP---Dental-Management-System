@@ -283,18 +283,34 @@ label {
 }
 
 /* ---------- Print Reset ---------- */
-@media print {
+/* Hide the mirror element during normal app browsing */
+.notes-print-mirror {
+    display: none;
+}
 
-  body,
-  #root,
-  .page-wrapper,
-  .container,
-  .content {
-    background: white !important;
-    color: black !important;
-    box-shadow: none !important;
-    border: none !important;
-  }
+@media print {
+    /* Hide the actual interactive textarea input container entirely */
+    .notes-textarea {
+        display: none !important;
+    }
+
+    /* Reveal the mirror text div instead */
+    .notes-print-mirror {
+        display: block !important;
+        width: 100%;
+        height: auto !important;
+        overflow: visible !important;
+        font-size: 14px;
+        line-height: 1.6;
+        padding: 10px 0;
+    }
+
+    /* Make sure the container tabs don't cut off layout space */
+    .tab-content-area {
+        display: block !important;
+        overflow: visible !important;
+        height: auto !important;
+    }
 
   /* Ensure background colors aren't forced if they are dark */
   * {
